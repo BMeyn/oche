@@ -95,6 +95,34 @@ export type ApplyOutcome =
   | "match-won"
   | "match-over";
 
+// ─── Lobby / Games ───────────────────────────────────────────────────────────
+
+export type GameStatus = "waiting" | "active" | "finished";
+
+export interface GameConfig {
+  mode: GameMode;
+  startingScore: number; // 0 for highlow
+  legsToWin: number;
+  inRule?: InRule;
+  outRule?: OutRule;
+}
+
+export interface Game {
+  id: string;
+  status: GameStatus;
+  config: GameConfig;
+  player1Id: number;
+  player1Email: string;
+  player2Id: number | null;
+  player2Email: string | null;
+  matchState: Match | null;
+  createdAt: Date;
+  startedAt: Date | null;
+  finishedAt: Date | null;
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
 export interface PlayerStats {
   threeDartAvg: number;
   totalDarts: number;

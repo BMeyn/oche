@@ -1,4 +1,20 @@
-// lib/types.ts — shared types for the scoring engine
+// lib/types.ts — shared types for the scoring engine and auth
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+
+export interface User {
+  id: number;
+  email: string;
+  createdAt: Date;
+}
+
+export interface Session {
+  id: string;
+  userId: number;
+  expiresAt: Date;
+}
+
+// ─── Scoring engine ───────────────────────────────────────────────────────────
 
 export type Multiplier = 1 | 2 | 3;
 

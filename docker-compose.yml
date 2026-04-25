@@ -1,0 +1,75 @@
+# OCHE — production-style local & VPS stack
+#
+# Spins up:
+#   - app     : the Next.js scoring app (port 3000, internal)
+#   - db      : Postgres 16 (data persisted in named volume)
+#   - caddy   : reverse proxy fronting the app (ports 80 / 443)
+#
+# Local:  docker compose up -d  →  http://localhost
+# VPS:    same — open ports 80/443 in your firewall, point at server IP
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: oche:latest
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://${POSTGRES_USER:-oche}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-oche}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "3000"
+    networks:
+      - oche-net
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-oche}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-oche}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oche} -d ${POSTGRES_DB:-oche}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Uncomment to expose Postgres on the host for local debugging only.
+    # Do NOT do this on a public VPS without a firewall rule.
+    # ports:
+    #   - "127.0.0.1:5432:5432"
+    networks:
+      - oche-net
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      - DOMAIN=${DOMAIN:-:80}
+    depends_on:
+      - app
+    networks:
+      - oche-net
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  oche-net:
+    driver: bridge

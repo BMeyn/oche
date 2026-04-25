@@ -1,0 +1,42 @@
+# OCHE — Caddy reverse proxy
+#
+# Default mode: listens on :80 (no HTTPS, suits IP-only deployments).
+#
+# When you have a domain:
+#   1. Point your DNS A record at the VPS public IP
+#   2. Set DOMAIN=darts.example.com in your .env
+#   3. Replace the {$DOMAIN} block below with just `darts.example.com`
+#      (or keep the env-var form — both work)
+#   4. docker compose up -d
+#   Caddy will obtain & renew a Let's Encrypt cert automatically.
+#
+# Useful commands:
+#   docker compose exec caddy caddy validate --config /etc/caddy/Caddyfile
+#   docker compose logs -f caddy
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Forward everything to the Next.js app
+	reverse_proxy app:3000 {
+		header_up X-Real-IP {remote_host}
+	}
+
+	# Basic security headers
+	header {
+		# Don't leak server info
+		-Server
+		# Frame protection
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# HSTS only kicks in over HTTPS — harmless when on plain :80
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+}

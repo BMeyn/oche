@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { -webkit-tap-highlight-color: transparent; }
+  body { background: #0a0e0c; }
+  .f-display { font-family: 'Big Shoulders Display', sans-serif; letter-spacing: -0.01em; }
+  .f-mono    { font-family: 'JetBrains Mono', monospace; }
+  .f-serif   { font-family: 'Fraunces', serif; }
+  input:focus { outline: none; }
+  button:focus-visible { outline: 2px solid #d4ff3a; outline-offset: 2px; }
+}
+
+@layer utilities {
+  @keyframes pulse-live { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.55; transform:scale(1.25); } }
+  .live-dot { animation: pulse-live 1.4s ease-in-out infinite; }
+
+  @keyframes rise { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform: translateY(0); } }
+  .rise { animation: rise 0.45s cubic-bezier(0.2,0.8,0.2,1) forwards; }
+
+  @keyframes bang { from { opacity:0; transform: scale(0.7); } to { opacity:1; transform: scale(1); } }
+  .bang { animation: bang 0.45s cubic-bezier(0.2,0.8,0.2,1) forwards; }
+
+  @keyframes dart-in { from { opacity:0; transform: scale(0.85) translateY(-4px); } to { opacity:1; transform: scale(1) translateY(0); } }
+  .dart-in { animation: dart-in 0.25s cubic-bezier(0.2,0.8,0.2,1) forwards; }
+
+  .key { transition: background 0.08s ease, transform 0.05s ease; user-select: none; }
+  .key:active { transform: translateY(1px); }
+}

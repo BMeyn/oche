@@ -1,0 +1,11 @@
+# Production override — pulls pre-built image from GHCR instead of building locally.
+#
+# Usage on VPS:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Local dev (builds from source):
+#   docker compose up -d
+
+services:
+  app:
+    image: ghcr.io/bmeyn/oche:latest

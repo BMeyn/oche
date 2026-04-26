@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Crown, Home, RotateCcw } from "lucide-react";
+import { Crown, Home, RotateCcw, Trophy } from "lucide-react";
 import type { Match, PlayerStats } from "@/lib/types";
 import { computeStats } from "@/lib/scoring";
 import { ruleLabel } from "@/lib/format";
@@ -11,9 +11,10 @@ interface Props {
   match: Match;
   onRestart: () => void;
   onNewMatch: () => void;
+  onBackToTournament?: () => void;
 }
 
-export function SummaryScreen({ match, onRestart, onNewMatch }: Props) {
+export function SummaryScreen({ match, onRestart, onNewMatch, onBackToTournament }: Props) {
   const stats = useMemo(() => computeStats(match), [match]);
   const winner = match.winner!;
   const loser = (1 - winner) as 0 | 1;
@@ -74,19 +75,39 @@ export function SummaryScreen({ match, onRestart, onNewMatch }: Props) {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={onRestart}
-            className="f-display font-black text-2xl uppercase px-6 py-4 flex items-center gap-3 bg-electric text-ink"
-          >
-            Rematch <RotateCcw className="w-6 h-6" strokeWidth={3} />
-          </button>
-          <button
-            onClick={onNewMatch}
-            className="f-mono text-sm uppercase px-6 py-4 border border-border text-cream flex items-center gap-2"
-            style={{ letterSpacing: "0.22em" }}
-          >
-            <Home className="w-4 h-4" /> New match
-          </button>
+          {onBackToTournament ? (
+            <>
+              <button
+                onClick={onBackToTournament}
+                className="f-display font-black text-2xl uppercase px-6 py-4 flex items-center gap-3 bg-electric text-ink"
+              >
+                <Trophy className="w-6 h-6" strokeWidth={2.5} /> Back to tournament
+              </button>
+              <button
+                onClick={onNewMatch}
+                className="f-mono text-sm uppercase px-6 py-4 border border-border text-cream flex items-center gap-2"
+                style={{ letterSpacing: "0.22em" }}
+              >
+                <Home className="w-4 h-4" /> Lobby
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={onRestart}
+                className="f-display font-black text-2xl uppercase px-6 py-4 flex items-center gap-3 bg-electric text-ink"
+              >
+                Rematch <RotateCcw className="w-6 h-6" strokeWidth={3} />
+              </button>
+              <button
+                onClick={onNewMatch}
+                className="f-mono text-sm uppercase px-6 py-4 border border-border text-cream flex items-center gap-2"
+                style={{ letterSpacing: "0.22em" }}
+              >
+                <Home className="w-4 h-4" /> New match
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

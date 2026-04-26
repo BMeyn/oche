@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "OCHE — darts scoring",
-  description: "Three darts. Zero math.",
+  title: {
+    default: "OCHE — Free Darts Scorer & Scorekeeper",
+    template: "%s — OCHE",
+  },
+  description:
+    "The darts scoring app that handles everything — bust detection, X01 from 301 to 1001, " +
+    "checkout hints, live averages, tournaments and friend challenges. No password, any device.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

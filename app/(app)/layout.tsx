@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { FeedbackButton } from "@/components/ui/FeedbackButton";
 
 // Force dynamic rendering — this layout reads cookies(), so it must never be
 // statically pre-rendered at build time (which would cache the redirect-to-login
@@ -11,5 +12,10 @@ export const dynamic = "force-dynamic";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <FeedbackButton />
+    </>
+  );
 }

@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   }
 
   const appUrl = process.env.APP_URL ?? "https://oche.cloud";
-  const response = NextResponse.redirect(new URL("/login", appUrl));
+  const response = NextResponse.redirect(new URL("/", appUrl));
   response.cookies.delete(SESSION_COOKIE);
   return response;
 }

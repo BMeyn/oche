@@ -1,14 +1,11 @@
 import { sql } from "@/lib/db";
 import { createMatch } from "@/lib/scoring";
 import type { Game, GameConfig, Match } from "@/lib/types";
+import { displayName } from "@/lib/display";
 
 function requireSql() {
   if (!sql) throw new Error("DATABASE_URL is not configured");
   return sql;
-}
-
-function displayName(email: string) {
-  return email.split("@")[0];
 }
 
 function rowToGame(row: Record<string, unknown>): Game {
@@ -36,9 +33,10 @@ export async function createGame(
   const db = requireSql();
 
   if (guestName) {
+    const [p1row] = await db`SELECT display_name FROM users WHERE id = ${userId}`;
     const matchConfig = {
       ...config,
-      players: [displayName(player1Email), guestName.trim()] as [string, string],
+      players: [displayName(player1Email, p1row?.display_name as string | null), guestName.trim()] as [string, string],
     };
     const initialMatch = createMatch(matchConfig);
     const [row] = await db`
@@ -70,7 +68,7 @@ export async function joinGame(gameId: string, player2: { id: number; email: str
 
   // Fetch player1 email and config in one query, also lock the row
   const [existing] = await db`
-    SELECT g.config, u.email AS player1_email
+    SELECT g.config, u.email AS player1_email, u.display_name AS player1_display_name
     FROM games g
     JOIN users u ON u.id = g.player1_id
     WHERE g.id = ${gameId} AND g.status = 'waiting'
@@ -79,9 +77,13 @@ export async function joinGame(gameId: string, player2: { id: number; email: str
   if (!existing) throw new Error("Game not found or already started");
 
   const config = existing.config as GameConfig;
+  const [p2row] = await db`SELECT display_name FROM users WHERE id = ${player2.id}`;
   const matchConfig = {
     ...config,
-    players: [displayName(existing.player1_email as string), displayName(player2.email)] as [string, string],
+    players: [
+      displayName(existing.player1_email as string, existing.player1_display_name as string | null),
+      displayName(player2.email, p2row?.display_name as string | null),
+    ] as [string, string],
   };
   const initialMatch = createMatch(matchConfig);
 

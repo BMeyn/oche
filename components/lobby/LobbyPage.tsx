@@ -2,24 +2,32 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, LogOut } from "lucide-react";
+import { Plus, LogOut, Trophy, Clock } from "lucide-react";
 import { BrandMark } from "@/components/ui/primitives";
+import { Avatar } from "@/components/ui/Avatar";
 import { CreateGameForm } from "./CreateGameForm";
 import { OpenGames } from "./OpenGames";
+import { CreateTournamentForm } from "@/components/tournament/CreateTournamentForm";
+import { YourTournaments } from "@/components/tournament/YourTournaments";
+import type { User } from "@/lib/types";
+import { displayName as dn } from "@/lib/display";
 
 interface Props {
-  userId: number;
-  userEmail: string;
+  user: User;
+  pendingFriendRequests: number;
 }
 
-export function LobbyPage({ userId, userEmail }: Props) {
+export function LobbyPage({ user, pendingFriendRequests }: Props) {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
+  const [showCreateTournament, setShowCreateTournament] = useState(false);
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    router.push("/");
   };
+
+  const name = dn(user.email, user.displayName);
 
   return (
     <div className="min-h-screen flex flex-col bg-ink">
@@ -27,9 +35,21 @@ export function LobbyPage({ userId, userEmail }: Props) {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border-soft">
         <BrandMark />
         <div className="flex items-center gap-4">
-          <span className="f-mono text-xs text-bone hidden sm:block">
-            {userEmail.split("@")[0]}
-          </span>
+          <button
+            onClick={() => router.push("/settings")}
+            className="flex items-center gap-2 text-muted hover:text-cream"
+            title="Settings"
+          >
+            <span className="relative">
+              <Avatar name={name} color={user.avatarColor} size="sm" />
+              {pendingFriendRequests > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-oche-red border border-ink"
+                />
+              )}
+            </span>
+            <span className="f-mono text-xs text-bone hidden sm:block">{name}</span>
+          </button>
           <button
             onClick={logout}
             className="flex items-center gap-1.5 f-mono text-xs uppercase text-muted hover:text-cream"
@@ -60,24 +80,45 @@ export function LobbyPage({ userId, userEmail }: Props) {
             STEP TO<br />THE <span className="text-electric">OCHE.</span>
           </h1>
 
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2.5 f-display font-black text-xl uppercase px-6 py-3.5 mb-6"
-            style={{ background: "#d4ff3a", color: "#0a0e0c" }}
-          >
-            <Plus className="w-5 h-5" strokeWidth={3} />
-            Create game
-          </button>
+          <div className="flex flex-wrap gap-3 mb-6">
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2.5 f-display font-black text-xl uppercase px-6 py-3.5"
+              style={{ background: "#d4ff3a", color: "#0a0e0c" }}
+            >
+              <Plus className="w-5 h-5" strokeWidth={3} />
+              Create game
+            </button>
+            <button
+              onClick={() => setShowCreateTournament(true)}
+              className="flex items-center gap-2.5 f-display font-black text-xl uppercase px-6 py-3.5 border border-border"
+              style={{ color: "#f2e8d0" }}
+            >
+              <Trophy className="w-5 h-5" strokeWidth={2} />
+              Tournament
+            </button>
+          </div>
 
           <p className="f-mono text-sm text-muted max-w-sm">
             Create a game and share the link with your opponent. They'll be able to join directly.
           </p>
 
-          <OpenGames currentUserId={userId} />
+          <YourTournaments currentUserId={user.id} />
+          <OpenGames currentUserId={user.id} />
         </div>
       </div>
 
+      {/* History shortcut — bottom right */}
+      <button
+        onClick={() => router.push("/history")}
+        className="fixed bottom-6 right-6 flex items-center gap-2 f-mono text-xs uppercase text-muted hover:text-cream border border-border-soft px-4 py-2.5"
+        style={{ background: "#0d1210", letterSpacing: "0.18em" }}
+      >
+        <Clock className="w-3.5 h-3.5" /> History
+      </button>
+
       {showCreate && <CreateGameForm onClose={() => setShowCreate(false)} />}
+      {showCreateTournament && <CreateTournamentForm onClose={() => setShowCreateTournament(false)} />}
     </div>
   );
 }

@@ -1,0 +1,118 @@
+name: Release & Deploy
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /root/oche
+
+            # Pull latest compose/migration files
+            git pull origin main
+
+            # Pull the new image
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull app
+
+            # Restart the app service (db and caddy stay up)
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d app
+
+            # Wait for the app to be healthy
+            echo "Waiting for app to become healthy..."
+            for i in $(seq 1 30); do
+              if docker inspect --format='{{.State.Health.Status}}' oche-app-1 2>/dev/null | grep -q healthy; then
+                echo "App is healthy!"
+                break
+              fi
+              if [ "$i" = "30" ]; then
+                echo "App did not become healthy within 60s"
+                exit 1
+              fi
+              sleep 2
+            done
+
+            # Run migrations (idempotent)
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T app node scripts/migrate.mjs
+
+            echo "Deployed ${{ needs.build-and-push.outputs.version }} successfully"

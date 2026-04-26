@@ -3,14 +3,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Check } from "lucide-react";
-import type { Game, Match } from "@/lib/types";
+import type { FriendEntry, Game, Match } from "@/lib/types";
 import { MatchScreen } from "@/components/match/MatchScreen";
 import { SummaryScreen } from "@/components/summary/SummaryScreen";
 import { BrandMark } from "@/components/ui/primitives";
+import { Avatar } from "@/components/ui/Avatar";
+import { displayName } from "@/lib/display";
 
 interface Props {
   game: Game;
   currentUserId: number;
+  tournamentId?: string;
 }
 
 function gameLabel(game: Game): string {
@@ -20,12 +23,14 @@ function gameLabel(game: Game): string {
   return `${config.startingScore} · ${out} · Best of ${config.legsToWin * 2 - 1}`;
 }
 
-export function MatchClient({ game: initialGame, currentUserId }: Props) {
+export function MatchClient({ game: initialGame, currentUserId, tournamentId }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState(initialGame.status);
   const [match, setMatch] = useState<Match | null>(initialGame.matchState);
   const [joining, setJoining] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedFor, setCopiedFor] = useState<number | null>(null);
+  const [friends, setFriends] = useState<FriendEntry[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const gameId = initialGame.id;
@@ -60,10 +65,24 @@ export function MatchClient({ game: initialGame, currentUserId }: Props) {
     }).catch(() => {});
   }, [gameId]);
 
+  useEffect(() => {
+    if (!isCreator) return;
+    fetch("/api/friends")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.friends) setFriends(data.friends); })
+      .catch(() => {});
+  }, [isCreator]);
+
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyLinkFor = (friendId: number) => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopiedFor(friendId);
+    setTimeout(() => setCopiedFor(null), 2000);
   };
 
   const join = async () => {
@@ -153,6 +172,41 @@ export function MatchClient({ game: initialGame, currentUserId }: Props) {
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {copied ? "Copied!" : "Copy invite link"}
             </button>
+            {friends.length > 0 && (
+              <div className="mt-8 max-w-xs mx-auto text-left">
+                <div className="f-mono text-[10px] uppercase text-muted mb-3" style={{ letterSpacing: "0.2em" }}>
+                  Invite a friend
+                </div>
+                <div className="space-y-2">
+                  {friends.map((f) => {
+                    const name = displayName(f.email, f.displayName);
+                    const isCopied = copiedFor === f.userId;
+                    return (
+                      <div
+                        key={f.userId}
+                        className="flex items-center justify-between gap-3 border border-border-soft px-3 py-2.5"
+                        style={{ background: "#141a17" }}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Avatar name={name} color={f.avatarColor} size="sm" />
+                          <span className="f-display font-black text-sm text-cream truncate">{name}</span>
+                        </div>
+                        <button
+                          onClick={() => copyLinkFor(f.userId)}
+                          className="f-mono text-[10px] uppercase shrink-0"
+                          style={{
+                            color: isCopied ? "#d4ff3a" : "#6d736f",
+                            letterSpacing: "0.15em",
+                          }}
+                        >
+                          {isCopied ? "Copied!" : "Copy link →"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="mt-8 flex justify-center">
               <div className="live-dot w-2 h-2 rounded-full bg-electric" />
             </div>
@@ -164,7 +218,14 @@ export function MatchClient({ game: initialGame, currentUserId }: Props) {
 
   // ── Match finished ────────────────────────────────────────────────────────
   if (status === "finished" && match?.winner != null) {
-    return <SummaryScreen match={match} onRestart={goLobby} onNewMatch={goLobby} />;
+    return (
+      <SummaryScreen
+        match={match}
+        onRestart={goLobby}
+        onNewMatch={goLobby}
+        onBackToTournament={tournamentId ? () => router.push(`/tournament/${tournamentId}`) : undefined}
+      />
+    );
   }
 
   // ── Active match ──────────────────────────────────────────────────────────

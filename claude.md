@@ -16,7 +16,7 @@ The user communicates in a mix of English and German ("Weiter" = "continue"). Re
 
 ## Where the project is now
 
-**Phase 3 (accounts + lobby + multi-device matches) is live on oche.cloud.**
+**Phases 3–5 (accounts, lobby, matches, tournaments, history) are implemented.**
 
 What's verified working:
 
@@ -29,7 +29,9 @@ What's verified working:
 - Local/guest play: skip invite, enter opponent name, game starts immediately on one device
 - "Your games" section in lobby: shows the user's non-finished games (waiting + active), polls every 5s, with Rejoin and Leave buttons
 - Match state persisted to DB on every turn (JSONB); both devices see updates within 1.5s
-- All migrations applied on VPS: `001_auth.sql`, `002_games.sql`
+- **Tournaments:** single-elimination brackets + round-robin (with optional full-season home/away). Invite link join, creator starts, matches auto-advance, finished results screen with rankings.
+- **Match history:** `/history` page showing all finished games (W/L, avg, 180s, best finish) + tournament history (rank, format, W/P). Aggregate stats bar at top.
+- Applied migrations on VPS: `001_auth.sql`, `002_games.sql`, `003_tournaments.sql`, `004_season_halves.sql`
 
 ## Tech stack & why
 
@@ -121,35 +123,53 @@ oche/
 │   │   ├── layout.tsx                DB session validation (force-dynamic!)
 │   │   ├── lobby/page.tsx            Landing page after login
 │   │   ├── play/page.tsx             Redirects → /lobby (retired)
-│   │   └── match/[id]/
-│   │       ├── page.tsx              Server: fetches game + user
-│   │       └── MatchClient.tsx       Client: scorer/spectator, polling, invite flow
+│   │   ├── history/page.tsx          Server: fetch game + tournament history, render HistoryPage
+│   │   ├── match/[id]/
+│   │   │   ├── page.tsx              Server: fetches game + user
+│   │   │   └── MatchClient.tsx       Client: scorer/spectator, polling, invite flow; ?tournament= param for back-link
+│   │   └── tournament/[id]/
+│   │       ├── page.tsx              Server: fetch tournament + user
+│   │       └── TournamentClient.tsx  Client: waiting/bracket/standings/finished views, 5s poll, cancel
 │   └── api/
 │       ├── auth/
 │       │   ├── request/route.ts      POST email → send magic link
 │       │   ├── verify/route.ts       GET ?token= → set cookie → redirect /lobby
 │       │   └── logout/route.ts       POST → delete session → redirect /login
-│       └── games/
-│           ├── route.ts              GET user's active games, POST create (with optional guestName)
-│           ├── [id]/route.ts         GET game state (polled by spectators), DELETE leave/cancel
-│           ├── [id]/join/route.ts    POST join game
-│           └── [id]/state/route.ts  PATCH update match state
+│       ├── games/
+│       │   ├── route.ts              GET user's active games, POST create (with optional guestName)
+│       │   ├── [id]/route.ts         GET game state (polled by spectators), DELETE leave/cancel
+│       │   ├── [id]/join/route.ts    POST join game
+│       │   └── [id]/state/route.ts  PATCH update match state; calls finishTournamentMatch when winner set
+│       └── tournaments/
+│           ├── route.ts              GET my tournaments, POST create
+│           ├── [id]/route.ts         GET tournament, DELETE cancel (creator only)
+│           ├── [id]/join/route.ts    POST join via invite link
+│           ├── [id]/start/route.ts   POST start (creator only) → generates matches
+│           └── [id]/matches/[matchId]/start/route.ts  POST → creates game, returns gameId
 ├── components/
 │   ├── lobby/
-│   │   ├── LobbyPage.tsx            Client: create button + "Your games" section
+│   │   ├── LobbyPage.tsx            Client: create + tournament + history buttons; fixed history shortcut
 │   │   ├── CreateGameForm.tsx        Client: modal config form; invite or local (guest name) mode
-│   │   └── OpenGames.tsx            Client: polls /api/games every 5s; shows user's non-finished games with Rejoin/Leave
+│   │   └── OpenGames.tsx            Client: polls /api/games every 5s; Rejoin/Leave buttons
+│   ├── history/
+│   │   └── HistoryPage.tsx          Client: game history list + tournament history + aggregate stats
+│   ├── tournament/
+│   │   ├── CreateTournamentForm.tsx  Modal: name, format, game config, max players, season halves
+│   │   ├── TournamentBracket.tsx     Single-elim bracket (rounds as columns, match cards)
+│   │   ├── TournamentStandings.tsx   Round-robin standings table + match list (grouped by half)
+│   │   └── YourTournaments.tsx       Lobby section: active + recently finished tournaments
 │   ├── setup/SetupScreen.tsx         Mode picker, player names, format (offline mode)
 │   ├── match/
 │   │   ├── MatchScreen.tsx           Wires engine to UI; owns toast + leg overlay
 │   │   ├── PlayerPanel.tsx           Big remaining number, avatar, dart slots, live avg
 │   │   └── Keypad.tsx                Multiplier toggle + 1-20 + bull + miss
-│   ├── summary/SummaryScreen.tsx     Winner reveal + per-player stats
+│   ├── summary/SummaryScreen.tsx     Winner reveal + per-player stats; onBackToTournament prop
 │   └── ui/primitives.tsx             Tag, Label, BrandMark
 ├── lib/
 │   ├── scoring.ts                    PURE ENGINE — read this before touching rules
 │   ├── checkouts.ts                  Verified 1/2/3-dart finish hint table
-│   ├── types.ts                      All shared types (auth, engine, games)
+│   ├── types.ts                      All shared types (auth, engine, games, tournaments)
+│   ├── tournament.ts                 Pure bracket logic: generateMatches, computeStandings, computeRankings, getAdvancementSlot
 │   ├── format.ts                     ruleLabel, initials display helpers
 │   ├── auth.ts                       getCurrentUser(), SESSION_COOKIE, SESSION_MAX_AGE
 │   ├── email.ts                      sendMagicLink() via Resend REST API
@@ -158,9 +178,13 @@ oche/
 │       ├── users.ts                  findOrCreateUser, getUserById
 │       ├── tokens.ts                 createMagicToken, consumeMagicToken, createSession, getSession, deleteSession
 │       ├── games.ts                  createGame, joinGame, getGame, getOpenGames, getMyGames, deleteGame, updateGameState
+│       ├── tournaments.ts            createTournament, joinTournament, startTournament, getTournament, getMyTournaments, startTournamentMatch, finishTournamentMatch, deleteTournament
+│       ├── history.ts                getGameHistory, getTournamentHistory (server-side stats computation)
 │       └── migrations/
 │           ├── 001_auth.sql          users, magic_tokens, sessions tables
-│           └── 002_games.sql         games table
+│           ├── 002_games.sql         games table
+│           ├── 003_tournaments.sql   tournaments, tournament_players, tournament_matches tables
+│           └── 004_season_halves.sql ALTER tournaments ADD COLUMN season_halves
 ├── tests/
 │   └── scoring.test.ts               24 tests covering all rule branches
 ├── scripts/
@@ -236,17 +260,19 @@ The script is idempotent. Re-running is safe — already-applied migrations show
 - **Phase 1** Scoring engine ✅ done with tests
 - **Phase 2** Single-device match ✅ done
 - **Phase 3** Accounts + lobby + multi-device matches ✅ done and live on oche.cloud
-- **Phase 4** Match history / player stats pages
-- **Phase 5** Tournaments (single-elim brackets first)
+- **Phase 4** Match history / player stats pages ✅ done (`/history` with game list + tournament history + aggregate stats)
+- **Phase 5** Tournaments ✅ done (single-elim + round-robin, full-season option, results screen, cancel)
 - **Phase 6** Extended player profiles & leaderboards
 - **Phase 7** AI vision agent for camera-based auto-scoring (user said "skip this for now")
 
 ## What to tackle next
 
-- **Match history** — `/history` page listing finished games with stats. The `games` table already has `finished_at` and `match_state` JSONB — just needs a query + UI.
-- **Player stats** — aggregate stats across all games a user played (avg, 180s, win rate, etc.)
-- **Rematch flow** — after summary, "Rematch" could auto-create a new game with same config and send the creator back to waiting screen.
-- **Display names** — users currently identified by email prefix. A `display_name` column on `users` would allow custom names without changing the email.
+See **[BACKLOG.md](BACKLOG.md)** for the full features backlog. Top candidates:
+
+- **Per-game detail view** — click into a finished game to see leg-by-leg / dart-by-dart breakdown
+- **Display names** — `display_name` column on `users` for custom names
+- **Leaderboards** — rank players by avg, win rate, 180s, highest checkout
+- **Rematch flow** — auto-create a new game with same config after summary
 
 ## Things to verify before claiming "done"
 
@@ -286,3 +312,7 @@ docker compose exec app node scripts/migrate.mjs
 8. **Cookie `secure` flag**: use `appUrl.startsWith("https://")`, not `NODE_ENV === "production"`.
 9. **`DOMAIN` env var for Caddy**: never add `:80` suffix — that forces HTTP-only and breaks Let's Encrypt.
 10. **When adding a new game mode**: extend `GameMode` in types, add `applyDart<Mode>` in scoring, route from `applyDart`, add tests, add UI option in `CreateGameForm`, add mode-specific rendering in `MatchScreen`.
+11. **Tournament bracket logic is pure** (`lib/tournament.ts` — no I/O). Same principle as the scoring engine. DB operations live in `lib/db/tournaments.ts`.
+12. **`finishTournamentMatch` is a no-op** if the game_id doesn't appear in `tournament_matches` — safe to call unconditionally from the game state route.
+13. **Round-robin halves use the `round` column**: round=1 = first half, round=2 = second half (reversed home/away). The `season_halves` column on `tournaments` controls whether round 2 is generated.
+14. **Tournament `getMyTournaments` includes finished ones up to 7 days old** — ordered active first, finished last. LIMIT 15.

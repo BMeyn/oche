@@ -5,7 +5,23 @@
 export interface User {
   id: number;
   email: string;
+  displayName: string | null;
+  avatarColor: string;
   createdAt: Date;
+}
+
+export interface FriendEntry {
+  requestId: number;
+  userId: number;
+  email: string;
+  displayName: string | null;
+  avatarColor: string;
+  status: "pending" | "accepted";
+  direction: "incoming" | "outgoing";
+  // aggregate stats — only populated for accepted friends
+  gamesPlayed?: number;
+  winRate?: number;      // 0–100
+  threeDartAvg?: number;
 }
 
 export interface Session {
@@ -119,6 +135,50 @@ export interface Game {
   createdAt: Date;
   startedAt: Date | null;
   finishedAt: Date | null;
+}
+
+// ─── Tournaments ─────────────────────────────────────────────────────────────
+
+export type TournamentFormat = "single_elim" | "round_robin";
+export type TournamentStatus = "waiting" | "active" | "finished";
+export type TournamentMatchStatus = "pending" | "ready" | "active" | "finished" | "bye";
+
+export interface Tournament {
+  id: string;
+  name: string;
+  status: TournamentStatus;
+  format: TournamentFormat;
+  gameConfig: GameConfig;
+  creatorId: number;
+  maxPlayers: number;
+  seasonHalves: number; // 1 = single round-robin, 2 = home + away (round_robin only)
+  createdAt: Date;
+  startedAt: Date | null;
+  finishedAt: Date | null;
+  players: TournamentPlayer[];
+  matches: TournamentMatch[];
+}
+
+export interface TournamentPlayer {
+  userId: number;
+  email: string;
+  displayName: string | null;
+  seed: number | null;
+  joinedAt: Date;
+}
+
+export interface TournamentMatch {
+  id: string;
+  tournamentId: string;
+  gameId: string | null;
+  round: number;
+  matchNumber: number;
+  player1Id: number | null;
+  player1Email: string | null;
+  player2Id: number | null;
+  player2Email: string | null;
+  winnerId: number | null;
+  status: TournamentMatchStatus;
 }
 
 // ─── Stats ────────────────────────────────────────────────────────────────────

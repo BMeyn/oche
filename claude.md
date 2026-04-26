@@ -16,7 +16,7 @@ The user communicates in a mix of English and German ("Weiter" = "continue"). Re
 
 ## Where the project is now
 
-**Phases 3–5 (accounts, lobby, matches, tournaments, history) are implemented.**
+**Phases 3–6 (accounts, lobby, matches, tournaments, history, profiles, friends) are implemented.**
 
 What's verified working:
 
@@ -25,13 +25,18 @@ What's verified working:
 - `tsc --noEmit` reports zero type errors
 - Magic-link email login (via Resend, sending domain `contact.oche.cloud`)
 - Session cookies, 30-day expiry, Postgres-backed
+- **Landing page** (`/`) — full-width marketing page with hero CTA (email form), feature cards, how-it-works, SEO (OG, Twitter card, JSON-LD schema). Unauthenticated users land here; authenticated users redirect to `/lobby`.
 - Lobby: create a game → share invite link → opponent joins → live match synced via polling
 - Local/guest play: skip invite, enter opponent name, game starts immediately on one device
 - "Your games" section in lobby: shows the user's non-finished games (waiting + active), polls every 5s, with Rejoin and Leave buttons
 - Match state persisted to DB on every turn (JSONB); both devices see updates within 1.5s
-- **Tournaments:** single-elimination brackets + round-robin (with optional full-season home/away). Invite link join, creator starts, matches auto-advance, finished results screen with rankings.
+- **Tournaments:** single-elimination brackets + round-robin (with optional full-season home/away). Invite link join OR direct friend invite from waiting room. Creator starts, matches auto-advance, cancel with confirm, finished results screen with rankings.
 - **Match history:** `/history` page showing all finished games (W/L, avg, 180s, best finish) + tournament history (rank, format, W/P). Aggregate stats bar at top.
-- Applied migrations on VPS: `001_auth.sql`, `002_games.sql`, `003_tournaments.sql`, `004_season_halves.sql`
+- **User profiles:** `display_name` + `avatar_color` on `users`. Custom names shown in match, lobby, tournaments, history.
+- **Friends system:** send/accept/decline/remove requests by email. Friend list with head-to-head stats + win rate leaderboard. Notification badge on lobby avatar when requests pending.
+- **Settings page** (`/settings`): edit display name, pick avatar colour, manage friends.
+- **Feedback button:** floating on all app pages, emails bjarne.meyn@icloud.com via Resend (or logs locally).
+- Applied migrations: `001_auth.sql` → `005_profiles.sql`
 
 ## Tech stack & why
 
@@ -61,7 +66,7 @@ If you're tempted to put scoring logic in a component, **don't.** Add it to `lib
 
 ### Auth: two-layer security
 
-1. **Middleware** (`middleware.ts`) — fast cookie-presence check, redirects to `/login` if no cookie
+1. **Middleware** (`middleware.ts`) — fast cookie-presence check. `/` (landing page) is allowed through unauthenticated; all other app routes redirect to `/` if no cookie.
 2. **`app/(app)/layout.tsx`** — full DB session validation via `getCurrentUser()`
 
 The layout **must** have `export const dynamic = "force-dynamic"`. Without it, Next.js 15 statically pre-renders it at build time (no cookie → redirect to login → cached for all users). This was a hard-won debugging lesson.
@@ -111,30 +116,35 @@ See `lib/scoring.ts` `applyDartX01` and the test "starts on first double; subseq
 ```
 oche/
 ├── app/                              Next.js App Router
-│   ├── layout.tsx                    Root layout, font loading, body class
-│   ├── page.tsx                      Redirects → /lobby
+│   ├── layout.tsx                    Root layout, font loading, body class, base SEO metadata
+│   ├── page.tsx                      Landing page (unauthenticated) or → /lobby (authenticated); OG + JSON-LD
 │   ├── globals.css                   Tailwind directives + custom keyframes
 │   ├── (auth)/
 │   │   ├── layout.tsx                Minimal bare layout (no nav)
 │   │   └── login/
-│   │       ├── page.tsx              Email form (server, reads searchParams)
+│   │       ├── page.tsx              Standalone email form (fallback, rarely used)
 │   │       └── LoginForm.tsx         Client form component
 │   ├── (app)/
-│   │   ├── layout.tsx                DB session validation (force-dynamic!)
-│   │   ├── lobby/page.tsx            Landing page after login
-│   │   ├── play/page.tsx             Redirects → /lobby (retired)
+│   │   ├── layout.tsx                DB session validation (force-dynamic!) + FeedbackButton
+│   │   ├── lobby/page.tsx            Lobby after login
+│   │   ├── settings/page.tsx         Server: fetch user + friends; render SettingsPage
 │   │   ├── history/page.tsx          Server: fetch game + tournament history, render HistoryPage
 │   │   ├── match/[id]/
 │   │   │   ├── page.tsx              Server: fetches game + user
-│   │   │   └── MatchClient.tsx       Client: scorer/spectator, polling, invite flow; ?tournament= param for back-link
+│   │   │   └── MatchClient.tsx       Client: scorer/spectator, polling, invite flow, friend quick-invite
 │   │   └── tournament/[id]/
 │   │       ├── page.tsx              Server: fetch tournament + user
-│   │       └── TournamentClient.tsx  Client: waiting/bracket/standings/finished views, 5s poll, cancel
+│   │       └── TournamentClient.tsx  Client: waiting/bracket/standings/finished views, friend invite, cancel
 │   └── api/
 │       ├── auth/
 │       │   ├── request/route.ts      POST email → send magic link
 │       │   ├── verify/route.ts       GET ?token= → set cookie → redirect /lobby
-│       │   └── logout/route.ts       POST → delete session → redirect /login
+│       │   └── logout/route.ts       POST → delete session → redirect /
+│       ├── feedback/route.ts         POST { type, message } → email via Resend or console log
+│       ├── profile/route.ts          PATCH { displayName?, avatarColor? } → updated User
+│       ├── friends/
+│       │   ├── route.ts              GET friends+requests, POST send request by email
+│       │   └── [id]/route.ts         PATCH accept/decline, DELETE remove/cancel
 │       ├── games/
 │       │   ├── route.ts              GET user's active games, POST create (with optional guestName)
 │       │   ├── [id]/route.ts         GET game state (polled by spectators), DELETE leave/cancel
@@ -144,15 +154,20 @@ oche/
 │           ├── route.ts              GET my tournaments, POST create
 │           ├── [id]/route.ts         GET tournament, DELETE cancel (creator only)
 │           ├── [id]/join/route.ts    POST join via invite link
+│           ├── [id]/invite/route.ts  POST invite friend (creator only; validates friendship)
 │           ├── [id]/start/route.ts   POST start (creator only) → generates matches
 │           └── [id]/matches/[matchId]/start/route.ts  POST → creates game, returns gameId
 ├── components/
+│   ├── landing/
+│   │   └── LandingPage.tsx          Landing page: hero CTA, feature cards, game modes, how-it-works
 │   ├── lobby/
-│   │   ├── LobbyPage.tsx            Client: create + tournament + history buttons; fixed history shortcut
-│   │   ├── CreateGameForm.tsx        Client: modal config form; invite or local (guest name) mode
-│   │   └── OpenGames.tsx            Client: polls /api/games every 5s; Rejoin/Leave buttons
+│   │   ├── LobbyPage.tsx            Header (avatar + settings link + notification badge), create/tournament buttons
+│   │   ├── CreateGameForm.tsx        Modal: invite or local (guest name) mode
+│   │   └── OpenGames.tsx            Polls /api/games every 5s; Rejoin/Leave buttons
 │   ├── history/
-│   │   └── HistoryPage.tsx          Client: game history list + tournament history + aggregate stats
+│   │   └── HistoryPage.tsx          Game history list + tournament history + aggregate stats
+│   ├── settings/
+│   │   └── SettingsPage.tsx         Profile edit, colour picker, friend management, leaderboard
 │   ├── tournament/
 │   │   ├── CreateTournamentForm.tsx  Modal: name, format, game config, max players, season halves
 │   │   ├── TournamentBracket.tsx     Single-elim bracket (rounds as columns, match cards)
@@ -161,30 +176,36 @@ oche/
 │   ├── setup/SetupScreen.tsx         Mode picker, player names, format (offline mode)
 │   ├── match/
 │   │   ├── MatchScreen.tsx           Wires engine to UI; owns toast + leg overlay
-│   │   ├── PlayerPanel.tsx           Big remaining number, avatar, dart slots, live avg
+│   │   ├── PlayerPanel.tsx           Score, avatar, dart slots, large avg display (bottom-right of score)
 │   │   └── Keypad.tsx                Multiplier toggle + 1-20 + bull + miss
 │   ├── summary/SummaryScreen.tsx     Winner reveal + per-player stats; onBackToTournament prop
-│   └── ui/primitives.tsx             Tag, Label, BrandMark
+│   └── ui/
+│       ├── primitives.tsx            Tag, Label, BrandMark
+│       ├── Avatar.tsx                Coloured square with initials (sm/md sizes)
+│       └── FeedbackButton.tsx        Floating feedback button (lower-left, all app pages)
 ├── lib/
 │   ├── scoring.ts                    PURE ENGINE — read this before touching rules
 │   ├── checkouts.ts                  Verified 1/2/3-dart finish hint table
-│   ├── types.ts                      All shared types (auth, engine, games, tournaments)
+│   ├── display.ts                    displayName(email, name?) helper — use instead of email.split("@")[0]
+│   ├── types.ts                      All shared types (auth, engine, games, tournaments, friends)
 │   ├── tournament.ts                 Pure bracket logic: generateMatches, computeStandings, computeRankings, getAdvancementSlot
 │   ├── format.ts                     ruleLabel, initials display helpers
 │   ├── auth.ts                       getCurrentUser(), SESSION_COOKIE, SESSION_MAX_AGE
 │   ├── email.ts                      sendMagicLink() via Resend REST API
 │   └── db/
 │       ├── index.ts                  Postgres connection (sql singleton)
-│       ├── users.ts                  findOrCreateUser, getUserById
+│       ├── users.ts                  findOrCreateUser, getUserById, updateProfile
 │       ├── tokens.ts                 createMagicToken, consumeMagicToken, createSession, getSession, deleteSession
 │       ├── games.ts                  createGame, joinGame, getGame, getOpenGames, getMyGames, deleteGame, updateGameState
-│       ├── tournaments.ts            createTournament, joinTournament, startTournament, getTournament, getMyTournaments, startTournamentMatch, finishTournamentMatch, deleteTournament
+│       ├── friends.ts                getFriends, getPendingRequests, sendFriendRequest, respondToRequest, removeFriend, cancelRequest
+│       ├── tournaments.ts            createTournament, joinTournament, invitePlayerToTournament, startTournament, getTournament, getMyTournaments, startTournamentMatch, finishTournamentMatch, deleteTournament
 │       ├── history.ts                getGameHistory, getTournamentHistory (server-side stats computation)
 │       └── migrations/
 │           ├── 001_auth.sql          users, magic_tokens, sessions tables
 │           ├── 002_games.sql         games table
 │           ├── 003_tournaments.sql   tournaments, tournament_players, tournament_matches tables
-│           └── 004_season_halves.sql ALTER tournaments ADD COLUMN season_halves
+│           ├── 004_season_halves.sql ALTER tournaments ADD COLUMN season_halves
+│           └── 005_profiles.sql      ALTER users ADD display_name, avatar_color; CREATE friend_requests
 ├── tests/
 │   └── scoring.test.ts               24 tests covering all rule branches
 ├── scripts/
@@ -261,8 +282,8 @@ The script is idempotent. Re-running is safe — already-applied migrations show
 - **Phase 2** Single-device match ✅ done
 - **Phase 3** Accounts + lobby + multi-device matches ✅ done and live on oche.cloud
 - **Phase 4** Match history / player stats pages ✅ done (`/history` with game list + tournament history + aggregate stats)
-- **Phase 5** Tournaments ✅ done (single-elim + round-robin, full-season option, results screen, cancel)
-- **Phase 6** Extended player profiles & leaderboards
+- **Phase 5** Tournaments ✅ done (single-elim + round-robin, full-season, friend invite, cancel, results)
+- **Phase 6** Extended player profiles & leaderboards ✅ partially done (display names, avatars, friends system, settings, friend leaderboard — global leaderboard + player profile pages remain)
 - **Phase 7** AI vision agent for camera-based auto-scoring (user said "skip this for now")
 
 ## What to tackle next
@@ -270,8 +291,8 @@ The script is idempotent. Re-running is safe — already-applied migrations show
 See **[BACKLOG.md](BACKLOG.md)** for the full features backlog. Top candidates:
 
 - **Per-game detail view** — click into a finished game to see leg-by-leg / dart-by-dart breakdown
-- **Display names** — `display_name` column on `users` for custom names
-- **Leaderboards** — rank players by avg, win rate, 180s, highest checkout
+- **Global leaderboard** — rank all players by avg, win rate, 180s, highest checkout
+- **Player profile page** — `/player/[id]` with match history, stats, recent form
 - **Rematch flow** — auto-create a new game with same config after summary
 
 ## Things to verify before claiming "done"

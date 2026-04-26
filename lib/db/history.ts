@@ -16,6 +16,7 @@ export interface GameHistoryItem {
   threeDartAvg: number;
   tonEighty: number;
   bestFinish: number;
+  isGuestGame: boolean;
 }
 
 export interface TournamentHistoryItem {
@@ -84,6 +85,7 @@ export async function getGameHistory(
         threeDartAvg: myStats.threeDartAvg,
         tonEighty: myStats.tonEighty,
         bestFinish: myStats.bestFinish,
+        isGuestGame: row.player2_id === null,
       });
     } catch {
       // skip malformed records

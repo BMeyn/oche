@@ -81,6 +81,7 @@ export async function getFriends(userId: number): Promise<FriendEntry[]> {
         ) AS wins
       FROM games g
       WHERE g.status = 'finished'
+        AND g.player2_id IS NOT NULL
         AND (g.player1_id = ${f.userId} OR g.player2_id = ${f.userId})
     `;
     const gamesPlayed = Number(stats.games_played ?? 0);

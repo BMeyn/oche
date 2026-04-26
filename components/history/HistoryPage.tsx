@@ -47,14 +47,15 @@ export function HistoryPage({ games, tournaments, user }: Props) {
   const userEmail = user.email;
   const router = useRouter();
 
-  // Aggregate stats
-  const totalGames = games.length;
-  const wins = games.filter((g) => g.result === "win").length;
+  // Aggregate stats — guest games are excluded from stats (but still shown in the list)
+  const rankedGames = games.filter((g) => !g.isGuestGame);
+  const totalGames = rankedGames.length;
+  const wins = rankedGames.filter((g) => g.result === "win").length;
   const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
-  const avgSum = games.reduce((s, g) => s + g.threeDartAvg, 0);
+  const avgSum = rankedGames.reduce((s, g) => s + g.threeDartAvg, 0);
   const avg = totalGames > 0 ? (avgSum / totalGames).toFixed(2) : "—";
-  const total180s = games.reduce((s, g) => s + g.tonEighty, 0);
-  const bestFinish = games.reduce((best, g) => (g.bestFinish > best ? g.bestFinish : best), 0);
+  const total180s = rankedGames.reduce((s, g) => s + g.tonEighty, 0);
+  const bestFinish = rankedGames.reduce((best, g) => (g.bestFinish > best ? g.bestFinish : best), 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-ink">
@@ -90,7 +91,7 @@ export function HistoryPage({ games, tournaments, user }: Props) {
             "all darts thrown."
           </div>
 
-          {/* Aggregate stats */}
+          {/* Aggregate stats — excludes guest games */}
           {totalGames > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-10">
               <StatBox label="Games" value={String(totalGames)} />
@@ -110,22 +111,30 @@ export function HistoryPage({ games, tournaments, user }: Props) {
                   <div
                     key={g.id}
                     className="border border-border-soft flex items-center justify-between px-4 py-3 gap-3"
-                    style={{ background: g.result === "win" ? "#0f1a12" : "#0e1010" }}
+                    style={{
+                      background: g.isGuestGame ? "#0c0f0e" : g.result === "win" ? "#0f1a12" : "#0e1010",
+                      opacity: g.isGuestGame ? 0.5 : 1,
+                    }}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
                           className="f-display font-black text-base"
-                          style={{ color: g.result === "win" ? "#d4ff3a" : "#e63946" }}
+                          style={{ color: g.isGuestGame ? "#6d736f" : g.result === "win" ? "#d4ff3a" : "#e63946" }}
                         >
                           {g.result === "win" ? "W" : "L"}
                         </span>
-                        <span className="f-display font-black text-cream text-base">
+                        <span className="f-display font-black text-base" style={{ color: g.isGuestGame ? "#6d736f" : "#f2e8d0" }}>
                           vs {g.opponent}
                         </span>
                         <span className="f-mono text-xs text-muted">
                           {g.legsWon}–{g.legsLost}
                         </span>
+                        {g.isGuestGame && (
+                          <span className="f-mono text-[9px] uppercase text-muted border border-border-soft px-1.5 py-0.5" style={{ letterSpacing: "0.15em" }}>
+                            guest · unranked
+                          </span>
+                        )}
                       </div>
                       <div className="f-mono text-[11px] text-muted mt-0.5 flex items-center gap-3 flex-wrap">
                         <span>

@@ -54,17 +54,10 @@ export function PlayerPanel({
               {name}
             </div>
             <div
-              className="f-mono text-[9px] uppercase flex items-center gap-2 text-muted"
+              className="f-mono text-[9px] uppercase text-muted"
               style={{ letterSpacing: "0.2em" }}
             >
-              <span>legs · {legsWon}</span>
-              <span className="text-muted-soft">|</span>
-              <span>
-                avg{" "}
-                <span style={{ color: dartsThrown > 0 ? "#d8cdaf" : "#454b47" }}>
-                  {dartsThrown > 0 ? avg.toFixed(1) : "—"}
-                </span>
-              </span>
+              legs · {legsWon}
             </div>
           </div>
         </div>
@@ -76,16 +69,35 @@ export function PlayerPanel({
         )}
       </div>
 
-      <div
-        className="f-display font-black leading-none"
-        style={{
-          fontSize: "clamp(56px, 13vw, 130px)",
-          color: notStartedYet ? "#d8cdaf" : (active ? "#d4ff3a" : "#f2e8d0"),
-          textShadow: active && !notStartedYet ? "0 0 30px #d4ff3a55" : "none",
-          opacity: notStartedYet ? 0.7 : 1,
-        }}
-      >
-        {showRemaining ? String(live).padStart(3, "0") : (live === 0 ? "—" : String(live))}
+      <div className="flex items-end justify-between gap-2">
+        <div
+          className="f-display font-black leading-none"
+          style={{
+            fontSize: "clamp(56px, 13vw, 130px)",
+            color: notStartedYet ? "#d8cdaf" : (active ? "#d4ff3a" : "#f2e8d0"),
+            textShadow: active && !notStartedYet ? "0 0 30px #d4ff3a55" : "none",
+            opacity: notStartedYet ? 0.7 : 1,
+          }}
+        >
+          {showRemaining ? String(live).padStart(3, "0") : (live === 0 ? "—" : String(live))}
+        </div>
+        <div className="text-right pb-1 shrink-0">
+          <div
+            className="f-mono text-[9px] uppercase text-muted mb-0.5"
+            style={{ letterSpacing: "0.2em" }}
+          >
+            avg
+          </div>
+          <div
+            className="f-display font-black leading-none"
+            style={{
+              fontSize: "clamp(22px, 4vw, 38px)",
+              color: dartsThrown > 0 ? (active ? "#d4ff3a" : "#f2e8d0") : "#454b47",
+            }}
+          >
+            {dartsThrown > 0 ? avg.toFixed(1) : "—"}
+          </div>
+        </div>
       </div>
       {notStartedYet && (
         <div

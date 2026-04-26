@@ -264,7 +264,7 @@ export function LandingPage({ error }: { error?: string }) {
               <div key={s.num}>
                 <div
                   className="f-display font-black mb-3"
-                  style={{ fontSize: "clamp(40px, 5vw, 64px)", color: "#1f2824" }}
+                  style={{ fontSize: "clamp(40px, 5vw, 64px)", color: "#d4ff3a" }}
                 >
                   {s.num}
                 </div>

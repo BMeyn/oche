@@ -1,6 +1,7 @@
 "use client";
 
-import type { Dart } from "@/lib/types";
+import { useEffect, useRef } from "react";
+import type { Dart, Turn } from "@/lib/types";
 import { initials } from "@/lib/format";
 import { Tag } from "@/components/ui/primitives";
 
@@ -10,7 +11,8 @@ interface Props {
   showRemaining: boolean;
   active: boolean;
   legsWon: number;
-  turnDarts: Dart[];
+  completedTurns: Turn[];
+  currentTurnDarts: Dart[];
   side: "left" | "right";
   accent: string;
   avg: number;
@@ -18,9 +20,65 @@ interface Props {
   notStartedYet: boolean;
 }
 
+function chipColors(d: Dart | null) {
+  if (!d) return { border: "#1f2824", background: "#0a0e0c" };
+  if (d.multiplier === 3) return { border: "#e63946", background: "#e6394618" };
+  if (d.multiplier === 2) return { border: "#d4ff3a", background: "#d4ff3a18" };
+  return { border: "#2a332d", background: "#0a0e0c" };
+}
+
+function DartChip({ dart, currentTurn }: { dart: Dart | null; currentTurn: boolean }) {
+  const { border, background } = chipColors(dart);
+  const ringColor = currentTurn && !dart ? "#d4ff3a55" : border;
+  return (
+    <div
+      className={dart ? "dart-in" : ""}
+      style={{
+        border: `1px solid ${ringColor}`,
+        background,
+        padding: "4px 6px",
+        minWidth: 44,
+        flexShrink: 0,
+      }}
+    >
+      <div className="flex items-baseline justify-between gap-1">
+        <span
+          className="f-display font-black text-sm leading-none"
+          style={{ color: dart ? "#f2e8d0" : "#454b47" }}
+        >
+          {dart ? dart.label : "—"}
+        </span>
+        {dart && (
+          <span className="f-mono text-[10px] text-bone leading-none">{dart.score}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function PlayerPanel({
-  name, live, showRemaining, active, legsWon, turnDarts, side, accent, avg, dartsThrown, notStartedYet,
+  name, live, showRemaining, active, legsWon,
+  completedTurns, currentTurnDarts,
+  side, accent, avg, dartsThrown, notStartedYet,
 }: Props) {
+  const stripRef = useRef<HTMLDivElement>(null);
+
+  const chunks: { darts: (Dart | null)[]; isCurrent: boolean }[] = completedTurns.map(
+    (t) => ({ darts: t.darts as (Dart | null)[], isCurrent: false }),
+  );
+  if (active) {
+    chunks.push({
+      darts: [0, 1, 2].map((i) => currentTurnDarts[i] ?? null),
+      isCurrent: true,
+    });
+  }
+
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    el.scrollLeft = el.scrollWidth;
+  }, [completedTurns.length, currentTurnDarts.length, active]);
+
   return (
     <div
       className={`relative p-3 md:p-5 ${side === "left" ? "border-r border-border-soft" : ""}`}
@@ -108,48 +166,34 @@ export function PlayerPanel({
         </div>
       )}
 
-      <div className="mt-3 grid grid-cols-3 gap-1.5">
-        {[0, 1, 2].map((i) => {
-          const d = turnDarts[i];
-          const filled = !!d;
-          return (
+      <div
+        ref={stripRef}
+        className="mt-3 flex gap-2 overflow-x-auto"
+        style={{ minHeight: 36, scrollbarWidth: "thin" }}
+      >
+        {chunks.length === 0 ? (
+          <div
+            className="flex items-center f-mono text-[10px] uppercase text-muted"
+            style={{ letterSpacing: "0.18em" }}
+          >
+            no darts yet
+          </div>
+        ) : (
+          chunks.map((chunk, ci) => (
             <div
-              key={i}
-              className={filled ? "dart-in" : ""}
+              key={ci}
+              className="flex items-stretch gap-1"
               style={{
-                border: `1px solid ${
-                  filled
-                    ? d.multiplier === 3 ? "#e63946"
-                    : d.multiplier === 2 ? "#d4ff3a"
-                    : "#2a332d"
-                    : "#1f2824"
-                }`,
-                background: filled
-                  ? d.multiplier === 3 ? "#e6394618"
-                  : d.multiplier === 2 ? "#d4ff3a18"
-                  : "#0a0e0c"
-                  : "#0a0e0c",
-                padding: "6px 8px",
+                borderLeft: ci > 0 ? "1px solid #1f2824" : "none",
+                paddingLeft: ci > 0 ? 8 : 0,
               }}
             >
-              <div
-                className="f-mono text-[9px] text-muted"
-                style={{ letterSpacing: "0.18em" }}
-              >
-                D{i + 1}
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span
-                  className="f-display font-black text-base"
-                  style={{ color: filled ? "#f2e8d0" : "#454b47" }}
-                >
-                  {filled ? d.label : "—"}
-                </span>
-                {filled && <span className="f-mono text-[10px] text-bone">{d.score}</span>}
-              </div>
+              {chunk.darts.map((d, di) => (
+                <DartChip key={di} dart={d} currentTurn={chunk.isCurrent} />
+              ))}
             </div>
-          );
-        })}
+          ))
+        )}
       </div>
     </div>
   );

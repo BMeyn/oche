@@ -5,12 +5,16 @@ export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { type, message } = await req.json();
+  const { type, message, version, commit } = await req.json();
   if (!message?.trim()) return NextResponse.json({ error: "Message required" }, { status: 400 });
 
   const label = type === "bug" ? "Bug report" : "Feature request";
+  const versionTag = version ? `v${version}` : "v?";
+  const commitTag = commit ?? "?";
 
-  console.log(`[feedback] ${label} from ${user.email}:\n${message}`);
+  console.log(
+    `[feedback] ${label} from ${user.email} (${versionTag} · ${commitTag}):\n${message}`,
+  );
 
   const apiKey = process.env.RESEND_API_KEY;
   if (apiKey) {
@@ -24,8 +28,12 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         from: `OCHE Feedback <noreply@${domain}>`,
         to: "bjarne.meyn@icloud.com",
-        subject: `[OCHE] ${label} from ${user.email}`,
-        text: `From: ${user.email}\nType: ${label}\n\n${message}`,
+        subject: `[OCHE ${versionTag}] ${label} from ${user.email}`,
+        text: `From: ${user.email}
+Type: ${label}
+Version: ${versionTag} (${commitTag})
+
+${message}`,
       }),
     });
   }

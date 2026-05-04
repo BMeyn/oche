@@ -4,11 +4,20 @@ name: Release & Deploy
 # Builds the image, tags it as both vX.Y.Z and latest in GHCR, then SSHs to
 # the VPS, writes the version to .env.version (so docker-compose pins to a
 # specific tag — rollback-friendly), pulls, restarts, and migrates.
+#
+# workflow_dispatch lets you re-run a deploy manually against an existing tag
+# from the Actions UI without having to push a new tag.
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+
+# Prevent overlapping deploys clobbering each other on the VPS.
+concurrency:
+  group: release-deploy
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -70,7 +79,6 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: VERSION
           script_stop: true
           script: |
             set -e

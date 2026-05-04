@@ -37,7 +37,6 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
   const p = match.currentLeg.currentPlayer;
   const liveRemaining = displayRemaining(match, p);
   const turnDarts = match.currentLeg.currentTurnDarts;
-  const hint = isX01 ? checkoutHint(liveRemaining, match.config.outRule ?? "double") : null;
   const stats = useMemo(() => computeStats(match), [match]);
 
   const needsDoubleIn =
@@ -45,6 +44,15 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
     match.config.inRule === "double" &&
     !match.currentLeg.hasStarted[p] &&
     !turnDarts.some(isDouble);
+
+  const hintFor = (player: 0 | 1): string[] | null => {
+    if (!isX01) return null;
+    if (match.config.inRule === "double" && !match.currentLeg.hasStarted[player]) return null;
+    const remaining = displayRemaining(match, player);
+    return checkoutHint(remaining, match.config.outRule ?? "double");
+  };
+  const hint0 = hintFor(0);
+  const hint1 = hintFor(1);
 
   useEffect(() => {
     if (!toast) return;
@@ -173,6 +181,7 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
           notStartedYet={
             isX01 && match.config.inRule === "double" && !match.currentLeg.hasStarted[0]
           }
+          checkoutHint={hint0}
         />
         <PlayerPanel
           name={match.config.players[1]}
@@ -188,48 +197,25 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
           notStartedYet={
             isX01 && match.config.inRule === "double" && !match.currentLeg.hasStarted[1]
           }
+          checkoutHint={hint1}
         />
       </div>
 
       <div className="px-3 md:px-6 py-2.5 border-t border-border-soft bg-surface flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2.5 flex-wrap">
-          {isX01 ? (
-            needsDoubleIn ? (
-              <>
-                <Tag color="#e63946" bg="#e6394615">
-                  NEEDS DOUBLE IN
-                </Tag>
-                <span className="f-mono text-xs text-bone">
-                  Hit any double to start scoring
-                </span>
-              </>
-            ) : hint ? (
-              <>
-                <span
-                  className="f-mono text-[10px] uppercase text-muted"
-                  style={{ letterSpacing: "0.24em" }}
-                >
-                  Checkout
-                </span>
-                <span className="f-display font-black text-xl text-electric">
-                  {liveRemaining} → 0
-                </span>
-                <div className="flex gap-1">
-                  {hint.map((h, i) => (
-                    <span
-                      key={i}
-                      className="f-display font-bold text-xs px-1.5 py-0.5 bg-ink text-cream border border-border"
-                    >
-                      {h}
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <span className="f-mono text-xs text-muted">
-                {liveRemaining <= 0 ? "—" : `${liveRemaining} remaining`}
+          {isX01 && needsDoubleIn ? (
+            <>
+              <Tag color="#e63946" bg="#e6394615">
+                NEEDS DOUBLE IN
+              </Tag>
+              <span className="f-mono text-xs text-bone">
+                Hit any double to start scoring
               </span>
-            )
+            </>
+          ) : isX01 ? (
+            <span className="f-mono text-xs text-muted">
+              {liveRemaining <= 0 ? "—" : `${liveRemaining} remaining`}
+            </span>
           ) : (
             <span className="f-mono text-xs text-bone">
               High-Low · best total wins the leg

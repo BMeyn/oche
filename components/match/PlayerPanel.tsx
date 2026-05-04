@@ -16,10 +16,11 @@ interface Props {
   avg: number;
   dartsThrown: number;
   notStartedYet: boolean;
+  checkoutHint: string[] | null;
 }
 
 export function PlayerPanel({
-  name, live, showRemaining, active, legsWon, turnDarts, side, accent, avg, dartsThrown, notStartedYet,
+  name, live, showRemaining, active, legsWon, turnDarts, side, accent, avg, dartsThrown, notStartedYet, checkoutHint,
 }: Props) {
   return (
     <div
@@ -105,6 +106,35 @@ export function PlayerPanel({
           style={{ letterSpacing: "0.22em" }}
         >
           Awaiting double in
+        </div>
+      )}
+
+      {checkoutHint && (
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+          <span
+            className="f-mono text-[9px] uppercase"
+            style={{
+              letterSpacing: "0.22em",
+              color: active ? "#d4ff3a" : "#6d736f",
+            }}
+          >
+            Finish
+          </span>
+          <div className="flex gap-1">
+            {checkoutHint.map((h, i) => (
+              <span
+                key={i}
+                className="f-display font-bold text-[11px] px-1.5 py-0.5 border"
+                style={{
+                  borderColor: active ? "#d4ff3a" : "#2a332d",
+                  background: active ? "#d4ff3a14" : "#0a0e0c",
+                  color: active ? "#d4ff3a" : "#d8cdaf",
+                }}
+              >
+                {h}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 

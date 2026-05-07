@@ -44,16 +44,18 @@ function DartChip({ d }: { d: Dart }) {
     d.multiplier === 3 ? "#e6394618" : d.multiplier === 2 ? "#d4ff3a18" : "#0a0e0c";
   return (
     <div
-      className="flex flex-col items-center justify-center"
+      className="flex flex-col items-center justify-center shrink-0"
       style={{
         border: `1px solid ${border}`,
         background: bg,
-        padding: "6px 8px",
-        minWidth: 52,
+        padding: "3px 4px",
+        minWidth: 36,
       }}
     >
-      <span className="f-display font-black text-base leading-none text-cream">{d.label}</span>
-      <span className="f-mono text-[10px] text-bone mt-1 leading-none">{d.score}</span>
+      <span className="f-display font-black text-[13px] md:text-base leading-none text-cream">
+        {d.label}
+      </span>
+      <span className="f-mono text-[9px] text-bone mt-0.5 leading-none">{d.score}</span>
     </div>
   );
 }
@@ -61,16 +63,21 @@ function DartChip({ d }: { d: Dart }) {
 function PlaceholderChip() {
   return (
     <div
-      className="flex flex-col items-center justify-center"
+      className="flex flex-col items-center justify-center shrink-0"
       style={{
         border: "1px dashed #1f2824",
         background: "#0a0e0c",
-        padding: "6px 8px",
-        minWidth: 52,
+        padding: "3px 4px",
+        minWidth: 36,
       }}
     >
-      <span className="f-display font-black text-base leading-none" style={{ color: "#454b47" }}>—</span>
-      <span className="f-mono text-[10px] mt-1 leading-none" style={{ color: "#454b47" }}>·</span>
+      <span
+        className="f-display font-black text-[13px] md:text-base leading-none"
+        style={{ color: "#454b47" }}
+      >
+        —
+      </span>
+      <span className="f-mono text-[9px] mt-0.5 leading-none" style={{ color: "#454b47" }}>·</span>
     </div>
   );
 }
@@ -79,56 +86,48 @@ function TurnEntry({
   darts,
   total,
   kind,
-  index,
 }: {
   darts: Dart[];
   total: number;
   kind: "ok" | "bust" | "win" | "in-progress";
-  index: number;
 }) {
   return (
     <div
-      className="flex items-center gap-2 md:gap-3 py-2.5"
+      className="flex items-center gap-1.5 md:gap-3 flex-wrap py-2 md:py-2.5"
       style={{ borderBottom: "1px solid #1f2824" }}
     >
-      <span
-        className="f-mono text-[10px] text-muted shrink-0 w-6 text-right"
-        style={{ letterSpacing: "0.15em" }}
-      >
-        {index}
-      </span>
       <div className="flex gap-1">
         {[0, 1, 2].map((i) => {
           const d = darts[i];
           return d ? <DartChip key={i} d={d} /> : <PlaceholderChip key={i} />;
         })}
       </div>
-      <div className="ml-auto flex items-center gap-2 shrink-0">
+      <div className="ml-auto flex items-center gap-1.5 shrink-0">
         {kind === "bust" && (
           <span
-            className="f-mono text-[9px] uppercase px-1.5 py-0.5 text-cream"
-            style={{ letterSpacing: "0.2em", background: "#e63946" }}
+            className="f-mono text-[8px] md:text-[9px] uppercase px-1 py-0.5 text-cream"
+            style={{ letterSpacing: "0.18em", background: "#e63946" }}
           >
             BUST
           </span>
         )}
         {kind === "win" && (
           <span
-            className="f-mono text-[9px] uppercase px-1.5 py-0.5"
-            style={{ letterSpacing: "0.2em", background: "#d4ff3a", color: "#0a0e0c" }}
+            className="f-mono text-[8px] md:text-[9px] uppercase px-1 py-0.5"
+            style={{ letterSpacing: "0.18em", background: "#d4ff3a", color: "#0a0e0c" }}
           >
             SHOT
           </span>
         )}
         {kind === "in-progress" && (
           <span
-            className="f-mono text-[9px] uppercase text-electric"
-            style={{ letterSpacing: "0.2em" }}
+            className="f-mono text-[8px] md:text-[9px] uppercase text-electric"
+            style={{ letterSpacing: "0.18em" }}
           >
             LIVE
           </span>
         )}
-        <span className="f-display font-black text-lg md:text-xl text-cream tabular-nums">
+        <span className="f-display font-black text-base md:text-xl text-cream tabular-nums">
           {total}
         </span>
       </div>
@@ -157,17 +156,20 @@ function PlayerColumn({
 
   return (
     <div
-      className={`p-4 md:p-6 ${side === "left" ? "border-r border-border-soft" : ""}`}
+      className={`p-2.5 md:p-6 min-w-0 ${side === "left" ? "border-r border-border-soft" : ""}`}
     >
-      <div className="flex items-center gap-2 mb-4 pb-3" style={{ borderBottom: `2px solid ${accent}` }}>
+      <div
+        className="flex items-center gap-2 mb-3 md:mb-4 pb-2 md:pb-3"
+        style={{ borderBottom: `2px solid ${accent}` }}
+      >
         <div
-          className="w-9 h-9 flex items-center justify-center f-display font-black"
+          className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center f-display font-black shrink-0"
           style={{ background: accent, color: "#0a0e0c" }}
         >
           {initials(name)}
         </div>
         <div className="min-w-0">
-          <div className="f-display font-black text-base md:text-lg text-cream truncate">
+          <div className="f-display font-black text-sm md:text-lg text-cream truncate">
             {name}
           </div>
           <div
@@ -189,11 +191,10 @@ function PlayerColumn({
       ) : (
         sections.map((sec) => {
           const turnsReversed = [...sec.turns].reverse();
-          const totalInLeg = sec.turns.length + (sec.inProgress ? 1 : 0);
           return (
-            <div key={sec.number} className="mb-5">
+            <div key={sec.number} className="mb-4 md:mb-5">
               <div
-                className="f-mono text-[10px] uppercase text-muted mb-2"
+                className="f-mono text-[10px] uppercase text-muted mb-1.5 md:mb-2"
                 style={{ letterSpacing: "0.24em" }}
               >
                 Leg {sec.number}
@@ -201,7 +202,6 @@ function PlayerColumn({
               <div>
                 {sec.inProgress && (
                   <TurnEntry
-                    index={totalInLeg}
                     darts={sec.inProgress}
                     total={sec.inProgress.reduce((s, d) => s + d.score, 0)}
                     kind="in-progress"
@@ -210,7 +210,6 @@ function PlayerColumn({
                 {turnsReversed.map((t, idx) => (
                   <TurnEntry
                     key={idx}
-                    index={sec.turns.length - idx}
                     darts={t.darts}
                     total={t.rawTotal}
                     kind={t.kind}

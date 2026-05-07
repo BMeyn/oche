@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/BMeyn/oche/compare/v1.2.0...v1.3.0) (2026-05-07)
+
+
+### Features
+
+* Normalize GHCR image names to lowercase ([#10](https://github.com/BMeyn/oche/issues/10)) ([e10c651](https://github.com/BMeyn/oche/commit/e10c6514f36154a8966aa3c087b848022261d541))
+
 # [1.2.0](https://github.com/BMeyn/oche/compare/v1.1.0...v1.2.0) (2026-05-07)
 
 

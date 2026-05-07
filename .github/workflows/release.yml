@@ -1,79 +1,122 @@
 name: Release & Deploy
 
-# Triggered by tag-on-main.yml pushing a v* tag.
-# Builds the image, tags it as both vX.Y.Z and latest in GHCR, then SSHs to
-# the VPS, writes the version to .env.version (so docker-compose pins to a
-# specific tag — rollback-friendly), pulls, restarts, and migrates.
+# On push to main: run tests, let semantic-release decide if there is a release,
+# tag + bump version, then build the image and deploy to the VPS — all in one run.
+# This avoids the GITHUB_TOKEN no-chain rule that previously kept tag-pushes from
+# triggering a separate deploy workflow.
 #
-# workflow_dispatch lets you re-run a deploy manually against an existing tag
-# from the Actions UI without having to push a new tag.
+# workflow_dispatch with `tag` input redeploys an existing tag (no new release).
+# workflow_dispatch with empty `tag` re-runs the release flow on current main
+# (e.g. to retry a failed earlier deploy where no new commits warrant a tag).
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to redeploy (e.g. v1.1.0). Leave blank to release HEAD of main."
+        required: false
+
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
 
 # Prevent overlapping deploys clobbering each other on the VPS.
 concurrency:
   group: release-deploy
   cancel-in-progress: false
 
-permissions:
-  contents: read
-  packages: write
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-push:
-    name: Build & Push Image
+  release:
+    name: Test, release, build, deploy
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.meta.outputs.version }}
+    # Don't loop on the bot's own version-bump commit. Belt-and-suspenders:
+    # GITHUB_TOKEN-pushed commits already don't trigger workflows.
+    if: "github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, 'chore(release)')"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+          ref: ${{ inputs.tag }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+
+      # Path A: push to main, OR manual dispatch without a tag → run semantic-release.
+      - name: Semantic release
+        if: inputs.tag == ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx --yes \
+            -p semantic-release@24 \
+            -p @semantic-release/changelog@6 \
+            -p @semantic-release/git@10 \
+            -p @semantic-release/exec@6 \
+            semantic-release
+
+      # Path B: manual dispatch with an existing tag → set NEW_VERSION from input.
+      - name: Use tag from manual input
+        if: inputs.tag != ''
+        run: |
+          TAG="${{ inputs.tag }}"
+          echo "NEW_VERSION=${TAG#v}" >> "$GITHUB_ENV"
+
+      # No release? Bail cleanly. semantic-release skips on chore/docs-only diffs.
+      - name: No release — exit
+        if: env.NEW_VERSION == ''
+        run: |
+          echo "semantic-release decided no version bump is warranted. Skipping deploy."
+          exit 0
 
       - name: Set up Docker Buildx
+        if: env.NEW_VERSION != ''
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
+        if: env.NEW_VERSION != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
-
-      - name: Build and push
+      - name: Build & push image
+        if: env.NEW_VERSION != ''
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.NEW_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           build-args: |
             APP_COMMIT=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    name: Deploy to VPS
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
       - name: Deploy via SSH
+        if: env.NEW_VERSION != ''
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -84,7 +127,7 @@ jobs:
             set -e
             cd /root/oche
 
-            VERSION="${{ needs.build-and-push.outputs.version }}"
+            VERSION="${{ env.NEW_VERSION }}"
 
             # Pull latest compose/migration files
             git pull origin main

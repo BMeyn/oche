@@ -44,18 +44,18 @@ function DartChip({ d }: { d: Dart }) {
     d.multiplier === 3 ? "#e6394618" : d.multiplier === 2 ? "#d4ff3a18" : "#0a0e0c";
   return (
     <div
-      className="flex flex-col items-center justify-center shrink-0"
+      className="flex flex-col items-center justify-center shrink-0 px-1 py-0.5 md:px-3 md:py-2 min-w-[36px] md:min-w-[68px]"
       style={{
         border: `1px solid ${border}`,
         background: bg,
-        padding: "3px 4px",
-        minWidth: 36,
       }}
     >
-      <span className="f-display font-black text-[13px] md:text-base leading-none text-cream">
+      <span className="f-display font-black text-[13px] md:text-xl leading-none text-cream">
         {d.label}
       </span>
-      <span className="f-mono text-[9px] text-bone mt-0.5 leading-none">{d.score}</span>
+      <span className="f-mono text-[9px] md:text-xs text-bone mt-0.5 md:mt-1 leading-none">
+        {d.score}
+      </span>
     </div>
   );
 }
@@ -63,21 +63,24 @@ function DartChip({ d }: { d: Dart }) {
 function PlaceholderChip() {
   return (
     <div
-      className="flex flex-col items-center justify-center shrink-0"
+      className="flex flex-col items-center justify-center shrink-0 px-1 py-0.5 md:px-3 md:py-2 min-w-[36px] md:min-w-[68px]"
       style={{
         border: "1px dashed #1f2824",
         background: "#0a0e0c",
-        padding: "3px 4px",
-        minWidth: 36,
       }}
     >
       <span
-        className="f-display font-black text-[13px] md:text-base leading-none"
+        className="f-display font-black text-[13px] md:text-xl leading-none"
         style={{ color: "#454b47" }}
       >
         —
       </span>
-      <span className="f-mono text-[9px] mt-0.5 leading-none" style={{ color: "#454b47" }}>·</span>
+      <span
+        className="f-mono text-[9px] md:text-xs mt-0.5 md:mt-1 leading-none"
+        style={{ color: "#454b47" }}
+      >
+        ·
+      </span>
     </div>
   );
 }
@@ -93,19 +96,19 @@ function TurnEntry({
 }) {
   return (
     <div
-      className="flex items-center gap-1.5 md:gap-3 flex-wrap py-2 md:py-2.5"
+      className="flex items-center gap-1.5 md:gap-4 flex-wrap py-2 md:py-3.5"
       style={{ borderBottom: "1px solid #1f2824" }}
     >
-      <div className="flex gap-1">
+      <div className="flex gap-1 md:gap-2">
         {[0, 1, 2].map((i) => {
           const d = darts[i];
           return d ? <DartChip key={i} d={d} /> : <PlaceholderChip key={i} />;
         })}
       </div>
-      <div className="ml-auto flex items-center gap-1.5 shrink-0">
+      <div className="ml-auto flex items-center gap-1.5 md:gap-3 shrink-0">
         {kind === "bust" && (
           <span
-            className="f-mono text-[8px] md:text-[9px] uppercase px-1 py-0.5 text-cream"
+            className="f-mono text-[8px] md:text-[10px] uppercase px-1 py-0.5 md:px-2 md:py-1 text-cream"
             style={{ letterSpacing: "0.18em", background: "#e63946" }}
           >
             BUST
@@ -113,7 +116,7 @@ function TurnEntry({
         )}
         {kind === "win" && (
           <span
-            className="f-mono text-[8px] md:text-[9px] uppercase px-1 py-0.5"
+            className="f-mono text-[8px] md:text-[10px] uppercase px-1 py-0.5 md:px-2 md:py-1"
             style={{ letterSpacing: "0.18em", background: "#d4ff3a", color: "#0a0e0c" }}
           >
             SHOT
@@ -121,13 +124,13 @@ function TurnEntry({
         )}
         {kind === "in-progress" && (
           <span
-            className="f-mono text-[8px] md:text-[9px] uppercase text-electric"
+            className="f-mono text-[8px] md:text-[10px] uppercase text-electric"
             style={{ letterSpacing: "0.18em" }}
           >
             LIVE
           </span>
         )}
-        <span className="f-display font-black text-base md:text-xl text-cream tabular-nums">
+        <span className="f-display font-black text-base md:text-3xl text-cream tabular-nums">
           {total}
         </span>
       </div>
@@ -156,70 +159,72 @@ function PlayerColumn({
 
   return (
     <div
-      className={`p-2.5 md:p-6 min-w-0 ${side === "left" ? "border-r border-border-soft" : ""}`}
+      className={`p-2.5 md:p-8 min-w-0 ${side === "left" ? "border-r border-border-soft" : ""}`}
     >
-      <div
-        className="flex items-center gap-2 mb-3 md:mb-4 pb-2 md:pb-3"
-        style={{ borderBottom: `2px solid ${accent}` }}
-      >
+      <div className="md:max-w-md md:mx-auto">
         <div
-          className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center f-display font-black shrink-0"
-          style={{ background: accent, color: "#0a0e0c" }}
+          className="flex items-center gap-2 md:gap-3 mb-3 md:mb-6 pb-2 md:pb-4"
+          style={{ borderBottom: `2px solid ${accent}` }}
         >
-          {initials(name)}
-        </div>
-        <div className="min-w-0">
-          <div className="f-display font-black text-sm md:text-lg text-cream truncate">
-            {name}
-          </div>
           <div
-            className="f-mono text-[9px] uppercase text-muted"
-            style={{ letterSpacing: "0.2em" }}
+            className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center f-display font-black shrink-0 text-sm md:text-lg"
+            style={{ background: accent, color: "#0a0e0c" }}
           >
-            turns · {totalTurns}
+            {initials(name)}
+          </div>
+          <div className="min-w-0">
+            <div className="f-display font-black text-sm md:text-2xl text-cream truncate">
+              {name}
+            </div>
+            <div
+              className="f-mono text-[9px] md:text-[10px] uppercase text-muted"
+              style={{ letterSpacing: "0.2em" }}
+            >
+              turns · {totalTurns}
+            </div>
           </div>
         </div>
-      </div>
 
-      {sections.length === 0 ? (
-        <div
-          className="f-mono text-xs text-muted py-6 text-center"
-          style={{ letterSpacing: "0.18em" }}
-        >
-          no darts yet
-        </div>
-      ) : (
-        sections.map((sec) => {
-          const turnsReversed = [...sec.turns].reverse();
-          return (
-            <div key={sec.number} className="mb-4 md:mb-5">
-              <div
-                className="f-mono text-[10px] uppercase text-muted mb-1.5 md:mb-2"
-                style={{ letterSpacing: "0.24em" }}
-              >
-                Leg {sec.number}
+        {sections.length === 0 ? (
+          <div
+            className="f-mono text-xs text-muted py-6 text-center"
+            style={{ letterSpacing: "0.18em" }}
+          >
+            no darts yet
+          </div>
+        ) : (
+          sections.map((sec) => {
+            const turnsReversed = [...sec.turns].reverse();
+            return (
+              <div key={sec.number} className="mb-4 md:mb-7">
+                <div
+                  className="f-mono text-[10px] md:text-xs uppercase text-muted mb-1.5 md:mb-3"
+                  style={{ letterSpacing: "0.24em" }}
+                >
+                  Leg {sec.number}
+                </div>
+                <div>
+                  {sec.inProgress && (
+                    <TurnEntry
+                      darts={sec.inProgress}
+                      total={sec.inProgress.reduce((s, d) => s + d.score, 0)}
+                      kind="in-progress"
+                    />
+                  )}
+                  {turnsReversed.map((t, idx) => (
+                    <TurnEntry
+                      key={idx}
+                      darts={t.darts}
+                      total={t.rawTotal}
+                      kind={t.kind}
+                    />
+                  ))}
+                </div>
               </div>
-              <div>
-                {sec.inProgress && (
-                  <TurnEntry
-                    darts={sec.inProgress}
-                    total={sec.inProgress.reduce((s, d) => s + d.score, 0)}
-                    kind="in-progress"
-                  />
-                )}
-                {turnsReversed.map((t, idx) => (
-                  <TurnEntry
-                    key={idx}
-                    darts={t.darts}
-                    total={t.rawTotal}
-                    kind={t.kind}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })
-      )}
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }

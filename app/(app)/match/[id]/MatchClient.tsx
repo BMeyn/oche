@@ -230,12 +230,14 @@ export function MatchClient({ game: initialGame, currentUserId, tournamentId }: 
 
   // ── Active match ──────────────────────────────────────────────────────────
   if (status === "active" && match) {
+    const historyHref = `/match/${gameId}/history${tournamentId ? `?tournament=${tournamentId}` : ""}`;
     return (
       <MatchScreen
         match={match}
         setMatch={proxySetMatch}
         onFinish={proxySetMatch}
         onExit={goLobby}
+        onShowHistory={() => router.push(historyHref)}
       />
     );
   }

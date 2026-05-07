@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/BMeyn/oche/compare/v1.1.0...v1.2.0) (2026-05-07)
+
+
+### Features
+
+* There is a big in the release process. The workflow that will deploy the latest ([#9](https://github.com/BMeyn/oche/issues/9)) ([58c98d8](https://github.com/BMeyn/oche/commit/58c98d82f61e3850d08b12c55dab612932b5782f))
+
 # [1.1.0](https://github.com/BMeyn/oche/compare/v1.0.0...v1.1.0) (2026-05-04)
 
 

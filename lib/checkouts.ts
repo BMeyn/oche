@@ -1,4 +1,4 @@
-// lib/checkouts.ts — verified 1/2/3-dart double-out finishes
+// lib/checkouts.ts — verified 1/2/3-dart finishes with programmatic fallback
 import type { OutRule } from "./types";
 
 export const CHECKOUTS_DOUBLE: Record<number, string[]> = {
@@ -26,15 +26,86 @@ export const CHECKOUTS_DOUBLE: Record<number, string[]> = {
   6:   ["D3"], 4: ["D2"], 2: ["D1"],
 };
 
+// Single-dart finisher: the label of a dart that lands `score` and satisfies `outRule`.
+// double:   D1..D20, BULL
+// master:   D1..D20, T1..T20, BULL
+// straight: any single dart landing the value (S1..S20, S25, D1..D20, T1..T20, BULL)
+function finisherLabel(score: number, outRule: OutRule): string | null {
+  if (score === 50) return "BULL";
+  if (score >= 2 && score <= 40 && score % 2 === 0) return `D${score / 2}`;
+  if (outRule === "master") {
+    if (score >= 3 && score <= 60 && score % 3 === 0) return `T${score / 3}`;
+    return null;
+  }
+  if (outRule === "straight") {
+    if (score >= 1 && score <= 20) return `${score}`;
+    if (score === 25) return "25";
+    if (score >= 3 && score <= 60 && score % 3 === 0) return `T${score / 3}`;
+    return null;
+  }
+  return null;
+}
+
+// Setup-dart catalog used by the 2-dart fallback. Order biases toward natural
+// suggestions: low singles first (so 41 → "1, D20" rather than "T13, D1"),
+// then triples high→low, then bull, 25, doubles.
+const SETUP_DARTS: Array<[number, string]> = (() => {
+  const out: Array<[number, string]> = [];
+  for (let n = 1; n <= 20; n++) out.push([n, `${n}`]);
+  for (let n = 20; n >= 1; n--) out.push([n * 3, `T${n}`]);
+  out.push([50, "BULL"]);
+  out.push([25, "25"]);
+  for (let n = 20; n >= 1; n--) out.push([n * 2, `D${n}`]);
+  return out;
+})();
+
+function find2DartFinish(remaining: number, outRule: OutRule): string[] | null {
+  for (const [score, label] of SETUP_DARTS) {
+    const rem = remaining - score;
+    if (rem <= 0) continue;
+    const fin = finisherLabel(rem, outRule);
+    if (fin) return [label, fin];
+  }
+  return null;
+}
+
+function find3DartFinish(remaining: number, outRule: OutRule): string[] | null {
+  // Prefer a triple as the first dart — that's the natural 3-dart setup.
+  for (let n = 20; n >= 1; n--) {
+    const after1 = remaining - n * 3;
+    if (after1 <= 1) continue;
+    const two = find2DartFinish(after1, outRule);
+    if (two) return [`T${n}`, ...two];
+  }
+  // Fallback: any other setup dart.
+  for (const [score, label] of SETUP_DARTS) {
+    if (label.startsWith("T")) continue;
+    const after1 = remaining - score;
+    if (after1 <= 1) continue;
+    const two = find2DartFinish(after1, outRule);
+    if (two) return [label, ...two];
+  }
+  return null;
+}
+
 export function checkoutHint(remaining: number, outRule: OutRule): string[] | null {
   if (remaining <= 0) return null;
-  if (outRule === "double" || outRule === "master") {
-    return CHECKOUTS_DOUBLE[remaining] || null;
+  if (remaining > 170) return null;
+
+  // 1-dart finish (covers D1..D20 / BULL, plus singles & triples for straight/master).
+  const oneDart = finisherLabel(remaining, outRule);
+  if (oneDart) return [oneDart];
+
+  // Curated 3-dart routes (optimal-tuned). Apply to double and master out;
+  // for straight-out we'd rather show a straight-finishable path via fallback.
+  if (outRule !== "straight" && CHECKOUTS_DOUBLE[remaining]) {
+    return CHECKOUTS_DOUBLE[remaining];
   }
-  // straight-out: simple finishes
-  if (remaining === 50) return ["BULL"];
-  if (remaining <= 20) return [`${remaining}`];
-  if (remaining <= 40 && remaining % 2 === 0) return [`D${remaining / 2}`];
-  // fall back to double-out hints
-  return CHECKOUTS_DOUBLE[remaining] || null;
+
+  // 2-dart fallback fills the gaps between the curated table and 1-dart finishes.
+  const two = find2DartFinish(remaining, outRule);
+  if (two) return two;
+
+  // 3-dart fallback for any value the curated table missed (rare).
+  return find3DartFinish(remaining, outRule);
 }

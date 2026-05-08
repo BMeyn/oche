@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Trophy } from "lucide-react";
+import { ArrowLeft, ChevronRight, Trophy } from "lucide-react";
 import { BrandMark } from "@/components/ui/primitives";
 import type { GameHistoryItem, TournamentHistoryItem } from "@/lib/db/history";
 import type { TournamentFormat, User } from "@/lib/types";
@@ -110,7 +110,16 @@ export function HistoryPage({ games, tournaments, user }: Props) {
                 {games.map((g) => (
                   <div
                     key={g.id}
-                    className="border border-border-soft flex items-center justify-between px-4 py-3 gap-3"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => router.push(`/history/${g.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(`/history/${g.id}`);
+                      }
+                    }}
+                    className="border border-border-soft flex items-center justify-between px-4 py-3 gap-3 cursor-pointer hover:border-border transition-colors"
                     style={{
                       background: g.isGuestGame ? "#0c0f0e" : g.result === "win" ? "#0f1a12" : "#0e1010",
                       opacity: g.isGuestGame ? 0.5 : 1,
@@ -154,12 +163,13 @@ export function HistoryPage({ games, tournaments, user }: Props) {
                         <span className="ml-auto">{timeAgo(g.date)}</span>
                       </div>
                     </div>
-                    <div className="shrink-0 text-right">
+                    <div className="shrink-0 text-right flex items-center gap-2">
                       <div className="f-mono text-[10px] text-muted" style={{ letterSpacing: "0.1em" }}>
                         {g.config.mode === "highlow"
                           ? "HIGH-LOW"
                           : `${g.config.startingScore}`}
                       </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-muted" />
                     </div>
                   </div>
                 ))}

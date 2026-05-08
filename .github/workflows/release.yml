@@ -82,7 +82,16 @@ jobs:
           TAG="${{ inputs.tag }}"
           echo "NEW_VERSION=${TAG#v}" >> "$GITHUB_ENV"
 
-      # No release? Bail cleanly. semantic-release skips on chore/docs-only diffs.
+      # Manual dispatch with empty tag and no new version warranted → redeploy
+      # the version currently in package.json (i.e. the latest released version).
+      - name: Fallback to package.json version (manual rerun)
+        if: env.NEW_VERSION == '' && github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "No new release from semantic-release. Redeploying current version v${VERSION}."
+          echo "NEW_VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      # Push to main with no release-worthy commits → bail cleanly.
       - name: No release — exit
         if: env.NEW_VERSION == ''
         run: |

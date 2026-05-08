@@ -1,8 +1,10 @@
-// lib/scoring.ts — pure scoring engine for X01 and High-Low
+// lib/scoring.ts — pure scoring engine for X01, High-Low, and Training drills
 import type {
   Dart, Multiplier, Turn, Leg, Match, MatchConfig,
   ApplyOutcome, PlayerStats,
+  TrainingState, TrainingRound, TrainingTarget, TrainingStats, TrainingDrill,
 } from "./types";
+import { CHECKOUTS_DOUBLE } from "./checkouts";
 
 // ─── Dart construction ──────────────────────────────────────────────
 
@@ -30,7 +32,7 @@ export const isTriple = (d: Dart): boolean => d.multiplier === 3 && d.number > 0
 
 export function createMatch(config: MatchConfig): Match {
   const startingScore = config.mode === "x01" ? config.startingScore : 0;
-  return {
+  const base: Match = {
     config: { ...config, startingScore },
     currentLeg: makeFreshLeg(1, 0, startingScore),
     legsWon: [0, 0],
@@ -38,6 +40,27 @@ export function createMatch(config: MatchConfig): Match {
     winner: null,
     startedAt: Date.now(),
   };
+  if (config.mode === "training") {
+    base.training = createTrainingState(config);
+  }
+  return base;
+}
+
+function createTrainingState(config: MatchConfig): TrainingState {
+  const drill = config.drill ?? "doubles";
+  const state: TrainingState = {
+    drill,
+    cursor: 0,
+    rounds: [],
+    currentDarts: [],
+    score: drill === "bobs27" ? 27 : 0,
+    finished: false,
+  };
+  if (drill === "checkout") {
+    const n = Math.max(1, Math.min(50, config.scenarioCount ?? 10));
+    state.scenarios = generateCheckoutScenarios(n);
+  }
+  return state;
 }
 
 function makeFreshLeg(number: number, startingPlayer: 0 | 1, startingScore: number): Leg {
@@ -76,6 +99,7 @@ export function displayRemaining(match: Match, p: 0 | 1): number {
 
 export function applyDart(match: Match, dart: Dart): { match: Match; outcome: ApplyOutcome } {
   if (match.winner !== null) return { match, outcome: "match-over" };
+  if (match.config.mode === "training") return applyDartTraining(match, dart);
   if (match.config.mode === "highlow") return applyDartHighLow(match, dart);
   return applyDartX01(match, dart);
 }
@@ -325,10 +349,291 @@ function applyDartHighLow(match: Match, dart: Dart): { match: Match; outcome: Ap
   };
 }
 
+// ─── Training drills ───────────────────────────────────────────────
+
+export function trainingTotalRounds(state: TrainingState, config: MatchConfig): number {
+  if (state.drill === "doubles") return 21;        // D1..D20 + BULL
+  if (state.drill === "bobs27") return 20;         // D1..D20
+  return state.scenarios?.length ?? config.scenarioCount ?? 10;
+}
+
+export function trainingCurrentTarget(state: TrainingState): TrainingTarget | null {
+  if (state.finished) return null;
+  if (state.drill === "doubles") {
+    if (state.cursor < 20) return { kind: "double", n: state.cursor + 1 };
+    return { kind: "bull" };
+  }
+  if (state.drill === "bobs27") {
+    return { kind: "double", n: state.cursor + 1 };
+  }
+  // checkout
+  if (!state.scenarios || state.cursor >= state.scenarios.length) return null;
+  return { kind: "checkout", remaining: state.scenarios[state.cursor] };
+}
+
+function dartHitsDoubleTarget(dart: Dart, n: number): boolean {
+  return dart.multiplier === 2 && dart.number === n;
+}
+
+function dartHitsBull(dart: Dart): boolean {
+  return dart.multiplier === 2 && dart.number === 25;
+}
+
+function applyDartTraining(match: Match, dart: Dart): { match: Match; outcome: ApplyOutcome } {
+  if (!match.training) return { match, outcome: "match-over" };
+  if (match.training.finished) return { match, outcome: "match-over" };
+  switch (match.training.drill) {
+    case "doubles":  return applyDartDoubles(match, dart);
+    case "bobs27":   return applyDartBobs27(match, dart);
+    case "checkout": return applyDartCheckout(match, dart);
+  }
+}
+
+function withTraining(match: Match, training: TrainingState): Match {
+  return { ...match, training };
+}
+
+function pushDart(state: TrainingState, dart: Dart): TrainingState {
+  return { ...state, currentDarts: [...state.currentDarts, dart] };
+}
+
+function commitRound(state: TrainingState, round: TrainingRound): TrainingState {
+  return {
+    ...state,
+    rounds: [...state.rounds, round],
+    currentDarts: [],
+    cursor: state.cursor + 1,
+  };
+}
+
+function applyDartDoubles(match: Match, dart: Dart): { match: Match; outcome: ApplyOutcome } {
+  const t = match.training!;
+  const target = trainingCurrentTarget(t);
+  if (!target) return { match, outcome: "match-over" };
+
+  const newDarts = [...t.currentDarts, dart];
+  const turnFull = newDarts.length >= 3;
+  if (!turnFull) {
+    return { match: withTraining(match, { ...t, currentDarts: newDarts }), outcome: "dart" };
+  }
+
+  const hits = newDarts.filter((d) =>
+    target.kind === "bull" ? dartHitsBull(d) : target.kind === "double" ? dartHitsDoubleTarget(d, target.n) : false,
+  ).length;
+
+  const round: TrainingRound = {
+    target,
+    darts: newDarts,
+    hits,
+    outcome: hits > 0 ? "hit" : "miss",
+  };
+  let next = commitRound(t, round);
+
+  if (next.cursor >= 21) {
+    next = { ...next, finished: true, finalKind: "complete" };
+    return finishTraining(match, next);
+  }
+  return { match: withTraining(match, next), outcome: "turn-end" };
+}
+
+function applyDartBobs27(match: Match, dart: Dart): { match: Match; outcome: ApplyOutcome } {
+  const t = match.training!;
+  const target = trainingCurrentTarget(t);
+  if (!target || target.kind !== "double") return { match, outcome: "match-over" };
+
+  const newDarts = [...t.currentDarts, dart];
+  const turnFull = newDarts.length >= 3;
+  if (!turnFull) {
+    return { match: withTraining(match, { ...t, currentDarts: newDarts }), outcome: "dart" };
+  }
+
+  const n = target.n;
+  const hits = newDarts.filter((d) => dartHitsDoubleTarget(d, n)).length;
+  const delta = hits > 0 ? hits * 2 * n : -2 * n;
+  const newScore = t.score + delta;
+
+  const bust = newScore <= 0;
+
+  const round: TrainingRound = {
+    target,
+    darts: newDarts,
+    hits,
+    outcome: bust ? "bobs-bust" : hits > 0 ? "hit" : "miss",
+    scoreAfter: newScore,
+  };
+  let next = commitRound(t, round);
+  next = { ...next, score: newScore };
+
+  if (bust) {
+    next = { ...next, finished: true, finalKind: "bust" };
+    return finishTraining(match, next);
+  }
+  if (next.cursor >= 20) {
+    next = { ...next, finished: true, finalKind: "complete" };
+    return finishTraining(match, next);
+  }
+  return { match: withTraining(match, next), outcome: "turn-end" };
+}
+
+function applyDartCheckout(match: Match, dart: Dart): { match: Match; outcome: ApplyOutcome } {
+  const t = match.training!;
+  const target = trainingCurrentTarget(t);
+  if (!target || target.kind !== "checkout") return { match, outcome: "match-over" };
+
+  const startRemaining = target.remaining;
+  const newDarts = [...t.currentDarts, dart];
+
+  // Compute remaining after each dart, applying double-out rules locally.
+  let rem = startRemaining;
+  let success = false;
+  let bust = false;
+  for (const d of newDarts) {
+    const after = rem - d.score;
+    if (after < 0) { bust = true; break; }
+    if (after === 0) {
+      if (isDouble(d)) { success = true; rem = 0; break; }
+      bust = true; break;
+    }
+    if (after === 1) { bust = true; break; }
+    rem = after;
+  }
+
+  const turnFull = newDarts.length >= 3;
+  const finalize = success || bust || turnFull;
+  if (!finalize) {
+    return { match: withTraining(match, { ...t, currentDarts: newDarts }), outcome: "dart" };
+  }
+
+  const round: TrainingRound = {
+    target,
+    darts: newDarts,
+    hits: success ? 1 : 0,
+    outcome: success ? "checkout-success" : "checkout-fail",
+    finishDarts: success ? newDarts.length : undefined,
+  };
+  let next = commitRound(t, round);
+
+  const total = t.scenarios?.length ?? 0;
+  if (next.cursor >= total) {
+    next = { ...next, finished: true, finalKind: "complete" };
+    return finishTraining(match, next);
+  }
+  return { match: withTraining(match, next), outcome: success ? "leg-won" : "turn-end" };
+}
+
+function finishTraining(match: Match, next: TrainingState): { match: Match; outcome: ApplyOutcome } {
+  return {
+    match: { ...match, training: next, winner: 0, endedAt: Date.now() },
+    outcome: "match-won",
+  };
+}
+
+// ─── Checkout scenario generator ──────────────────────────────────
+
+const COMMON_FINISHES_SUPP = [40, 36, 32, 28, 24, 20, 16, 12, 8, 50, 41, 45, 60, 65, 80, 85];
+
+export function generateCheckoutScenarios(n: number, seed?: number): number[] {
+  // Pool: curated finishes from CHECKOUTS_DOUBLE plus common doubles & odd setups.
+  const pool = new Set<number>();
+  for (const k of Object.keys(CHECKOUTS_DOUBLE)) {
+    const v = Number(k);
+    if (v >= 41 && v <= 170) pool.add(v);
+  }
+  for (const v of COMMON_FINISHES_SUPP) pool.add(v);
+  const arr = Array.from(pool);
+
+  // Simple seeded PRNG (mulberry32) so sessions feel deterministic-ish.
+  let s = seed ?? Date.now() & 0xffffffff;
+  const rand = () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  // Fisher-Yates partial shuffle.
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, Math.min(n, arr.length));
+}
+
+// ─── Training stats ───────────────────────────────────────────────
+
+export function computeTrainingStats(state: TrainingState): TrainingStats {
+  const totalDarts = state.rounds.reduce((a, r) => a + r.darts.length, 0);
+  let hits = 0;
+  let attempts = state.rounds.length;
+  let longestStreak = 0;
+  let currentStreak = 0;
+  let bestFinish = 0;
+  let finishDartsTotal = 0;
+  let successCount = 0;
+
+  if (state.drill === "checkout") {
+    for (const r of state.rounds) {
+      const ok = r.outcome === "checkout-success";
+      if (ok) {
+        hits++;
+        successCount++;
+        finishDartsTotal += r.finishDarts ?? 0;
+        if (r.target.kind === "checkout" && r.target.remaining > bestFinish) {
+          bestFinish = r.target.remaining;
+        }
+        currentStreak++;
+        if (currentStreak > longestStreak) longestStreak = currentStreak;
+      } else {
+        currentStreak = 0;
+      }
+    }
+  } else {
+    for (const r of state.rounds) {
+      hits += r.hits;
+      if (r.hits > 0) {
+        currentStreak++;
+        if (currentStreak > longestStreak) longestStreak = currentStreak;
+      } else {
+        currentStreak = 0;
+      }
+    }
+  }
+
+  const stats: TrainingStats = {
+    drill: state.drill,
+    totalDarts,
+    hits,
+    attempts,
+    accuracyPct:
+      state.drill === "checkout"
+        ? attempts > 0 ? (hits / attempts) * 100 : 0
+        : totalDarts > 0 ? (hits / totalDarts) * 100 : 0,
+    longestStreak,
+    finalKind: state.finalKind,
+  };
+  if (state.drill === "bobs27") stats.finalScore = state.score;
+  if (state.drill === "checkout") {
+    stats.avgFinishDarts = successCount > 0 ? finishDartsTotal / successCount : 0;
+    stats.bestFinish = bestFinish;
+  }
+  return stats;
+}
+
 // ─── Undo ─────────────────────────────────────────────────────────
 
 export function undoLastDart(match: Match): Match {
   if (match.winner !== null) return match;
+  if (match.config.mode === "training" && match.training) {
+    if (match.training.currentDarts.length === 0) return match;
+    return {
+      ...match,
+      training: {
+        ...match.training,
+        currentDarts: match.training.currentDarts.slice(0, -1),
+      },
+    };
+  }
   const leg = match.currentLeg;
   if (leg.currentTurnDarts.length > 0) {
     return {

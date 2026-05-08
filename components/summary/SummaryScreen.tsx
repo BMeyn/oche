@@ -6,6 +6,7 @@ import type { Match, PlayerStats } from "@/lib/types";
 import { computeStats } from "@/lib/scoring";
 import { ruleLabel } from "@/lib/format";
 import { BrandMark, Tag } from "@/components/ui/primitives";
+import { TrainingSummary } from "./TrainingSummary";
 
 interface Props {
   match: Match;
@@ -15,6 +16,12 @@ interface Props {
 }
 
 export function SummaryScreen({ match, onRestart, onNewMatch, onBackToTournament }: Props) {
+  if (match.config.mode === "training" && match.training) {
+    return (
+      <TrainingSummary match={match} onNewMatch={onNewMatch} onRestart={onRestart} />
+    );
+  }
+
   const stats = useMemo(() => computeStats(match), [match]);
   const winner = match.winner!;
   const loser = (1 - winner) as 0 | 1;

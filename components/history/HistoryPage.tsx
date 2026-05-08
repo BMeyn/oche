@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronRight, Trophy } from "lucide-react";
+import { ArrowLeft, ChevronRight, Trophy, Target } from "lucide-react";
 import { BrandMark } from "@/components/ui/primitives";
 import type { GameHistoryItem, TournamentHistoryItem } from "@/lib/db/history";
 import type { TournamentFormat, User } from "@/lib/types";
 import { displayName as dn } from "@/lib/display";
+import { drillLabel } from "@/lib/format";
 
 interface Props {
   games: GameHistoryItem[];
@@ -47,8 +48,10 @@ export function HistoryPage({ games, tournaments, user }: Props) {
   const userEmail = user.email;
   const router = useRouter();
 
-  // Aggregate stats — guest games are excluded from stats (but still shown in the list)
-  const rankedGames = games.filter((g) => !g.isGuestGame);
+  // Aggregate stats — guest + training games are excluded from stats (but still shown in the list)
+  const rankedGames = games.filter((g) => !g.isGuestGame && !g.isTraining);
+  const trainingGames = games.filter((g) => g.isTraining);
+  const matchGames = games.filter((g) => !g.isTraining);
   const totalGames = rankedGames.length;
   const wins = rankedGames.filter((g) => g.result === "win").length;
   const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
@@ -102,12 +105,12 @@ export function HistoryPage({ games, tournaments, user }: Props) {
           )}
 
           {/* Games section */}
-          <Section label="Games" count={games.length}>
-            {games.length === 0 ? (
+          <Section label="Games" count={matchGames.length}>
+            {matchGames.length === 0 ? (
               <EmptyState text="No finished games yet." />
             ) : (
               <div className="space-y-1.5">
-                {games.map((g) => (
+                {matchGames.map((g) => (
                   <div
                     key={g.id}
                     role="button"
@@ -177,6 +180,44 @@ export function HistoryPage({ games, tournaments, user }: Props) {
             )}
           </Section>
 
+          {/* Practice section */}
+          {trainingGames.length > 0 && (
+            <Section label="Practice" count={trainingGames.length}>
+              <div className="space-y-1.5">
+                {trainingGames.map((g) => {
+                  const ts = g.trainingSummary!;
+                  const isBust = ts.resultLabel === "BUSTED";
+                  return (
+                    <div
+                      key={g.id}
+                      className="border border-border-soft flex items-center justify-between px-4 py-3 gap-3"
+                      style={{ background: "#0d1210" }}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Target className="w-3.5 h-3.5 text-electric shrink-0" />
+                          <span className="f-display font-black text-base text-cream">
+                            {drillLabel(ts.drill)}
+                          </span>
+                          <span
+                            className="f-display font-black text-base"
+                            style={{ color: isBust ? "#e63946" : "#d4ff3a" }}
+                          >
+                            {ts.resultLabel}
+                          </span>
+                        </div>
+                        <div className="f-mono text-[11px] text-muted mt-0.5 flex items-center gap-3 flex-wrap">
+                          <span>{ts.metricLabel}</span>
+                          <span className="ml-auto">{timeAgo(g.date)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Section>
+          )}
+
           {/* Tournaments section */}
           <Section label="Tournaments" count={tournaments.length}>
             {tournaments.length === 0 ? (
@@ -219,7 +260,7 @@ export function HistoryPage({ games, tournaments, user }: Props) {
             )}
           </Section>
 
-          {totalGames === 0 && tournaments.length === 0 && (
+          {games.length === 0 && tournaments.length === 0 && (
             <div className="f-mono text-sm text-muted text-center py-16">
               No history yet. Play some games first!
             </div>

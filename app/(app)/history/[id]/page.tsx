@@ -21,5 +21,8 @@ export default async function GameDetailServerPage({
     game.player1Id === user.id || game.player2Id === user.id;
   if (!isParticipant) notFound();
 
+  // Training sessions don't have a per-leg detail view — bounce back to the list.
+  if (game.matchState.config.mode === "training") redirect("/history");
+
   return <GameDetailPage game={game} currentUserId={user.id} />;
 }

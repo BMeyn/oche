@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Game, GameConfig } from "@/lib/types";
+import { drillLabel } from "@/lib/format";
 
 function gameLabel(config: GameConfig): string {
+  if (config.mode === "training") return drillLabel(config.drill ?? "doubles");
   if (config.mode === "highlow") return "High-Low";
   const out = config.outRule === "double" ? "Double out" : config.outRule === "master" ? "Master out" : "Straight out";
   return `${config.startingScore} · ${out} · Best of ${config.legsToWin * 2 - 1}`;
@@ -69,13 +71,26 @@ export function OpenGames({ currentUserId }: { currentUserId: number }) {
           >
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="f-mono text-xs text-muted">vs</span>
-                <span className="f-display font-black text-cream text-lg">
-                  {opponentName(game, currentUserId)}
-                </span>
-                <span className="f-mono text-xs text-bone" style={{ letterSpacing: "0.05em" }}>
-                  · {gameLabel(game.config)}
-                </span>
+                {game.config.mode === "training" ? (
+                  <>
+                    <span className="f-mono text-xs uppercase text-electric" style={{ letterSpacing: "0.18em" }}>
+                      practice
+                    </span>
+                    <span className="f-display font-black text-cream text-lg">
+                      {gameLabel(game.config)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="f-mono text-xs text-muted">vs</span>
+                    <span className="f-display font-black text-cream text-lg">
+                      {opponentName(game, currentUserId)}
+                    </span>
+                    <span className="f-mono text-xs text-bone" style={{ letterSpacing: "0.05em" }}>
+                      · {gameLabel(game.config)}
+                    </span>
+                  </>
+                )}
               </div>
               <div className="f-mono text-[11px] text-muted mt-0.5 flex items-center gap-2">
                 {game.status === "waiting" ? (

@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/BMeyn/oche/compare/v1.5.0...v1.6.0) (2026-05-08)
+
+
+### Features
+
+* Add targeted training mode for darts ([#15](https://github.com/BMeyn/oche/issues/15)) ([2c08d4e](https://github.com/BMeyn/oche/commit/2c08d4e857196877e264ead056ab063cbd776b1e))
+
 # [1.5.0](https://github.com/BMeyn/oche/compare/v1.4.0...v1.5.0) (2026-05-08)
 
 

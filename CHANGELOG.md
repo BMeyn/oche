@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/BMeyn/oche/compare/v1.4.0...v1.5.0) (2026-05-08)
+
+
+### Features
+
+* Restrict feedback button to lobby view ([#14](https://github.com/BMeyn/oche/issues/14)) ([dc1aab1](https://github.com/BMeyn/oche/commit/dc1aab17f33952e8e14669cf650c798a3d1645e3))
+
 # [1.4.0](https://github.com/BMeyn/oche/compare/v1.3.0...v1.4.0) (2026-05-08)
 
 

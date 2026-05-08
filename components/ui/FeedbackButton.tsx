@@ -12,13 +12,16 @@ export function FeedbackButton() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
+  const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0";
+  const commit = (process.env.NEXT_PUBLIC_APP_COMMIT ?? "dev").slice(0, 7);
+
   const submit = async () => {
     if (!message.trim()) return;
     setSending(true);
     await fetch("/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, message }),
+      body: JSON.stringify({ type, message, version, commit }),
     });
     setSending(false);
     setSent(true);
@@ -101,6 +104,13 @@ export function FeedbackButton() {
             >
               {sent ? "Sent!" : sending ? "Sending…" : "Send →"}
             </button>
+
+            <div
+              className="mt-3 f-mono text-[10px] uppercase text-muted text-center"
+              style={{ letterSpacing: "0.15em" }}
+            >
+              v{version} · {commit}
+            </div>
           </div>
         </div>
       )}

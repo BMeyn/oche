@@ -17,12 +17,13 @@ interface Props {
   avg: number;
   dartsThrown: number;
   notStartedYet: boolean;
+  checkoutHint: string[] | null;
 }
 
 export function PlayerPanel({
   name, live, showRemaining, active, legsWon,
   completedTurns, currentTurnDarts,
-  side, accent, avg, dartsThrown, notStartedYet,
+  side, accent, avg, dartsThrown, notStartedYet, checkoutHint,
 }: Props) {
   // Slot rule: show in-progress darts when mid-turn; otherwise hold the last
   // completed turn's darts on screen until this player throws their next dart.
@@ -117,6 +118,35 @@ export function PlayerPanel({
           style={{ letterSpacing: "0.22em" }}
         >
           Awaiting double in
+        </div>
+      )}
+
+      {checkoutHint && (
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+          <span
+            className="f-mono text-[9px] uppercase"
+            style={{
+              letterSpacing: "0.22em",
+              color: active ? "#d4ff3a" : "#d8cdaf",
+            }}
+          >
+            Finish
+          </span>
+          <div className="flex gap-1">
+            {checkoutHint.map((h, i) => (
+              <span
+                key={i}
+                className="f-display font-bold text-[11px] px-1.5 py-0.5 border"
+                style={{
+                  borderColor: active ? "#d4ff3a" : "#3a4540",
+                  background: active ? "#d4ff3a14" : "#1a221e",
+                  color: active ? "#d4ff3a" : "#f2e8d0",
+                }}
+              >
+                {h}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 

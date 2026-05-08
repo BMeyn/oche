@@ -1,11 +1,16 @@
 # Production override — pulls pre-built image from GHCR instead of building locally.
 #
-# Usage on VPS:
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# OCHE_VERSION pins the image to a specific release tag (e.g. 1.2.3). The deploy
+# workflow writes this to .env.version on the VPS. Falling back to "latest" lets
+# you run the override locally without bothering with the env var.
 #
-# Local dev (builds from source):
-#   docker compose up -d
+# Usage on VPS (after deploy):
+#   docker compose --env-file .env --env-file .env.version \
+#     -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Manual rollback:
+#   echo "OCHE_VERSION=1.2.2" > .env.version && (re-run command above)
 
 services:
   app:
-    image: ghcr.io/bmeyn/oche:latest
+    image: ghcr.io/bmeyn/oche:${OCHE_VERSION:-latest}

@@ -1,5 +1,6 @@
 // components/ui/primitives.tsx
 import { ReactNode } from "react";
+import Link from "next/link";
 
 export const Tag = ({
   children, color = "#f2e8d0", bg = "transparent",
@@ -22,7 +23,11 @@ export const Label = ({ children }: { children: ReactNode }) => (
 );
 
 export const BrandMark = ({ size = "xl" }: { size?: "xl" | "sm" }) => (
-  <div className="flex items-center gap-2.5">
+  <Link
+    href="/lobby"
+    aria-label="Go to lobby"
+    className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+  >
     <div
       className="relative flex items-center justify-center bg-electric"
       style={{ width: size === "xl" ? 32 : 24, height: size === "xl" ? 32 : 24 }}
@@ -36,5 +41,5 @@ export const BrandMark = ({ size = "xl" }: { size?: "xl" | "sm" }) => (
     >
       OCHE<span className="text-oche-red">.</span>
     </span>
-  </div>
+  </Link>
 );

@@ -12,6 +12,10 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Short commit SHA, baked into the build so the UI can show "v1.2.3 · a1b2c3d".
+# Falls back to "dev" when not provided (local docker build).
+ARG APP_COMMIT=dev
+ENV APP_COMMIT=$APP_COMMIT
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

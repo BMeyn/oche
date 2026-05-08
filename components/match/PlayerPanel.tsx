@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dart } from "@/lib/types";
+import type { Dart, Turn } from "@/lib/types";
 import { initials } from "@/lib/format";
 import { Tag } from "@/components/ui/primitives";
 
@@ -10,7 +10,8 @@ interface Props {
   showRemaining: boolean;
   active: boolean;
   legsWon: number;
-  turnDarts: Dart[];
+  completedTurns: Turn[];
+  currentTurnDarts: Dart[];
   side: "left" | "right";
   accent: string;
   avg: number;
@@ -20,8 +21,19 @@ interface Props {
 }
 
 export function PlayerPanel({
-  name, live, showRemaining, active, legsWon, turnDarts, side, accent, avg, dartsThrown, notStartedYet, checkoutHint,
+  name, live, showRemaining, active, legsWon,
+  completedTurns, currentTurnDarts,
+  side, accent, avg, dartsThrown, notStartedYet, checkoutHint,
 }: Props) {
+  // Slot rule: show in-progress darts when mid-turn; otherwise hold the last
+  // completed turn's darts on screen until this player throws their next dart.
+  const slotDarts: Dart[] =
+    currentTurnDarts.length > 0
+      ? currentTurnDarts
+      : completedTurns.length > 0
+      ? completedTurns[completedTurns.length - 1].darts
+      : [];
+
   return (
     <div
       className={`relative p-3 md:p-5 ${side === "left" ? "border-r border-border-soft" : ""}`}
@@ -140,7 +152,7 @@ export function PlayerPanel({
 
       <div className="mt-3 grid grid-cols-3 gap-1.5">
         {[0, 1, 2].map((i) => {
-          const d = turnDarts[i];
+          const d = slotDarts[i];
           const filled = !!d;
           return (
             <div

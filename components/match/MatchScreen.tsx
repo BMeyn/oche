@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { ChevronLeft, Undo2 } from "lucide-react";
+import { ChevronLeft, History, Undo2 } from "lucide-react";
 import type { Match, Multiplier } from "@/lib/types";
 import {
   applyDart, displayRemaining, makeDart, undoLastDart, computeStats, sumDarts,
@@ -18,6 +18,7 @@ interface Props {
   setMatch: (m: Match) => void;
   onExit: () => void;
   onFinish: (finalMatch: Match) => void;
+  onShowHistory?: () => void;
 }
 
 interface LegOverlay {
@@ -28,7 +29,7 @@ interface LegOverlay {
   highlowBest: [number | null, number | null];
 }
 
-export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
+export function MatchScreen({ match, setMatch, onExit, onFinish, onShowHistory }: Props) {
   const [multiplier, setMultiplier] = useState<Multiplier>(1);
   const [toast, setToast] = useState<{ msg: string; kind: "bust" | "info" } | null>(null);
   const [legOverlay, setLegOverlay] = useState<LegOverlay | null>(null);
@@ -152,18 +153,30 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
             <Tag color="#6d736f">first to {match.config.legsToWin}</Tag>
           </div>
         </div>
-        <button
-          onClick={undo}
-          disabled={nothingToUndo}
-          className="flex items-center gap-1.5 f-mono text-xs uppercase px-3 py-1.5 border border-border"
-          style={{
-            color: nothingToUndo ? "#454b47" : "#d8cdaf",
-            letterSpacing: "0.2em",
-            opacity: nothingToUndo ? 0.4 : 1,
-          }}
-        >
-          <Undo2 className="w-3 h-3" /> Undo
-        </button>
+        <div className="flex items-center gap-2">
+          {onShowHistory && (
+            <button
+              onClick={onShowHistory}
+              className="flex items-center gap-1.5 f-mono text-xs uppercase px-3 py-1.5 border border-border text-bone"
+              style={{ letterSpacing: "0.2em" }}
+            >
+              <History className="w-3 h-3" />
+              <span className="hidden sm:inline">History</span>
+            </button>
+          )}
+          <button
+            onClick={undo}
+            disabled={nothingToUndo}
+            className="flex items-center gap-1.5 f-mono text-xs uppercase px-3 py-1.5 border border-border"
+            style={{
+              color: nothingToUndo ? "#454b47" : "#d8cdaf",
+              letterSpacing: "0.2em",
+              opacity: nothingToUndo ? 0.4 : 1,
+            }}
+          >
+            <Undo2 className="w-3 h-3" /> Undo
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2">
@@ -173,7 +186,8 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
           showRemaining={isX01}
           active={p === 0}
           legsWon={match.legsWon[0]}
-          turnDarts={p === 0 ? turnDarts : []}
+          completedTurns={match.currentLeg.turns[0]}
+          currentTurnDarts={p === 0 ? turnDarts : []}
           side="left"
           accent="#d4ff3a"
           avg={stats[0].threeDartAvg}
@@ -189,7 +203,8 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
           showRemaining={isX01}
           active={p === 1}
           legsWon={match.legsWon[1]}
-          turnDarts={p === 1 ? turnDarts : []}
+          completedTurns={match.currentLeg.turns[1]}
+          currentTurnDarts={p === 1 ? turnDarts : []}
           side="right"
           accent="#e63946"
           avg={stats[1].threeDartAvg}
@@ -199,6 +214,7 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
           }
           checkoutHint={hint1}
         />
+
       </div>
 
       <div className="px-3 md:px-6 py-2.5 border-t border-border-soft bg-surface flex items-center justify-between gap-3 flex-wrap">

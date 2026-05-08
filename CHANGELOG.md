@@ -1,3 +1,11 @@
+# [1.4.0](https://github.com/BMeyn/oche/compare/v1.3.0...v1.4.0) (2026-05-08)
+
+
+### Features
+
+* Add game statistics view with burndown chart ([#12](https://github.com/BMeyn/oche/issues/12)) ([00cdc35](https://github.com/BMeyn/oche/commit/00cdc35f12390f2861d29de531091fc2fb1b2d1f))
+* Show both players real-time checkout ([#13](https://github.com/BMeyn/oche/issues/13)) ([b12c934](https://github.com/BMeyn/oche/commit/b12c934ac86e5636d2a953fb9d1d7ce34a51762c))
+
 # [1.3.0](https://github.com/BMeyn/oche/compare/v1.2.0...v1.3.0) (2026-05-07)
 
 

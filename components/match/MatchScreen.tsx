@@ -5,13 +5,14 @@ import { ChevronLeft, Undo2 } from "lucide-react";
 import type { Match, Multiplier } from "@/lib/types";
 import {
   applyDart, displayRemaining, makeDart, undoLastDart, computeStats, sumDarts,
-  isDouble, DART_MISS,
+  isDouble, DART_MISS, trainingCurrentTarget, trainingTotalRounds,
 } from "@/lib/scoring";
 import { checkoutHint } from "@/lib/checkouts";
-import { ruleLabel } from "@/lib/format";
+import { ruleLabel, drillLabel, targetLabel } from "@/lib/format";
 import { Tag } from "@/components/ui/primitives";
 import { PlayerPanel } from "./PlayerPanel";
 import { Keypad } from "./Keypad";
+import { TrainingPanel } from "@/components/training/TrainingPanel";
 
 interface Props {
   match: Match;
@@ -34,9 +35,12 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
   const [legOverlay, setLegOverlay] = useState<LegOverlay | null>(null);
 
   const isX01 = match.config.mode === "x01";
+  const isTraining = match.config.mode === "training";
   const p = match.currentLeg.currentPlayer;
   const liveRemaining = displayRemaining(match, p);
-  const turnDarts = match.currentLeg.currentTurnDarts;
+  const turnDarts = isTraining
+    ? (match.training?.currentDarts ?? [])
+    : match.currentLeg.currentTurnDarts;
   const stats = useMemo(() => computeStats(match), [match]);
 
   const needsDoubleIn =
@@ -71,7 +75,11 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
     setMultiplier(1);
 
     if (outcome === "bust") setToast({ msg: "BUST", kind: "bust" });
-    if (outcome === "leg-won") {
+    if (isTraining && outcome === "leg-won") {
+      // Per-scenario success in Checkout drill
+      setToast({ msg: "CHECKOUT", kind: "info" });
+    }
+    if (!isTraining && outcome === "leg-won") {
       const last = next.legHistory[next.legHistory.length - 1];
       setLegOverlay({
         winner: last.winner,
@@ -99,10 +107,16 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
   };
 
   const turnTotal = sumDarts(turnDarts);
-  const nothingToUndo =
-    turnDarts.length === 0 &&
-    match.currentLeg.turns[0].length === 0 &&
-    match.currentLeg.turns[1].length === 0;
+  const nothingToUndo = isTraining
+    ? turnDarts.length === 0
+    : turnDarts.length === 0 &&
+      match.currentLeg.turns[0].length === 0 &&
+      match.currentLeg.turns[1].length === 0;
+
+  const trainingTarget = isTraining ? trainingCurrentTarget(match.training!) : null;
+  const trainingProgress = isTraining
+    ? `${Math.min(match.training!.cursor + 1, trainingTotalRounds(match.training!, match.config))} / ${trainingTotalRounds(match.training!, match.config)}`
+    : "";
 
   return (
     <div className="min-h-screen flex flex-col bg-ink">
@@ -117,40 +131,56 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
         <div className="flex items-center gap-3 md:gap-5">
           <div className="hidden sm:block">
             <Tag color="#6d736f">
-              {match.config.mode === "x01"
+              {isTraining
+                ? drillLabel(match.training!.drill).toUpperCase()
+                : match.config.mode === "x01"
                 ? `${match.config.startingScore} · ${ruleLabel(match.config)}`
                 : "HIGH-LOW"}
             </Tag>
           </div>
-          <div
-            className="f-mono text-xs text-muted"
-            style={{ letterSpacing: "0.18em" }}
-          >
-            LEG{" "}
-            <span className="f-display font-black text-base ml-1 text-cream">
-              {match.currentLeg.number}
-            </span>
-          </div>
-          <div className="f-display font-black text-xl">
-            <span
-              style={{
-                color: match.legsWon[0] > match.legsWon[1] ? "#d4ff3a" : "#f2e8d0",
-              }}
+          {isTraining ? (
+            <div
+              className="f-mono text-xs text-muted"
+              style={{ letterSpacing: "0.18em" }}
             >
-              {match.legsWon[0]}
-            </span>
-            <span className="text-muted"> – </span>
-            <span
-              style={{
-                color: match.legsWon[1] > match.legsWon[0] ? "#d4ff3a" : "#f2e8d0",
-              }}
-            >
-              {match.legsWon[1]}
-            </span>
-          </div>
-          <div className="hidden md:block">
-            <Tag color="#6d736f">first to {match.config.legsToWin}</Tag>
-          </div>
+              ROUND{" "}
+              <span className="f-display font-black text-base ml-1 text-cream">
+                {trainingProgress}
+              </span>
+            </div>
+          ) : (
+            <>
+              <div
+                className="f-mono text-xs text-muted"
+                style={{ letterSpacing: "0.18em" }}
+              >
+                LEG{" "}
+                <span className="f-display font-black text-base ml-1 text-cream">
+                  {match.currentLeg.number}
+                </span>
+              </div>
+              <div className="f-display font-black text-xl">
+                <span
+                  style={{
+                    color: match.legsWon[0] > match.legsWon[1] ? "#d4ff3a" : "#f2e8d0",
+                  }}
+                >
+                  {match.legsWon[0]}
+                </span>
+                <span className="text-muted"> – </span>
+                <span
+                  style={{
+                    color: match.legsWon[1] > match.legsWon[0] ? "#d4ff3a" : "#f2e8d0",
+                  }}
+                >
+                  {match.legsWon[1]}
+                </span>
+              </div>
+              <div className="hidden md:block">
+                <Tag color="#6d736f">first to {match.config.legsToWin}</Tag>
+              </div>
+            </>
+          )}
         </div>
         <button
           onClick={undo}
@@ -166,44 +196,55 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2">
-        <PlayerPanel
-          name={match.config.players[0]}
-          live={isX01 ? displayRemaining(match, 0) : (match.currentLeg.highlowBest[0] ?? 0)}
-          showRemaining={isX01}
-          active={p === 0}
-          legsWon={match.legsWon[0]}
-          turnDarts={p === 0 ? turnDarts : []}
-          side="left"
-          accent="#d4ff3a"
-          avg={stats[0].threeDartAvg}
-          dartsThrown={stats[0].totalDarts}
-          notStartedYet={
-            isX01 && match.config.inRule === "double" && !match.currentLeg.hasStarted[0]
-          }
-          checkoutHint={hint0}
-        />
-        <PlayerPanel
-          name={match.config.players[1]}
-          live={isX01 ? displayRemaining(match, 1) : (match.currentLeg.highlowBest[1] ?? 0)}
-          showRemaining={isX01}
-          active={p === 1}
-          legsWon={match.legsWon[1]}
-          turnDarts={p === 1 ? turnDarts : []}
-          side="right"
-          accent="#e63946"
-          avg={stats[1].threeDartAvg}
-          dartsThrown={stats[1].totalDarts}
-          notStartedYet={
-            isX01 && match.config.inRule === "double" && !match.currentLeg.hasStarted[1]
-          }
-          checkoutHint={hint1}
-        />
-      </div>
+      {isTraining ? (
+        <TrainingPanel match={match} />
+      ) : (
+        <div className="grid grid-cols-2">
+          <PlayerPanel
+            name={match.config.players[0]}
+            live={isX01 ? displayRemaining(match, 0) : (match.currentLeg.highlowBest[0] ?? 0)}
+            showRemaining={isX01}
+            active={p === 0}
+            legsWon={match.legsWon[0]}
+            turnDarts={p === 0 ? turnDarts : []}
+            side="left"
+            accent="#d4ff3a"
+            avg={stats[0].threeDartAvg}
+            dartsThrown={stats[0].totalDarts}
+            notStartedYet={
+              isX01 && match.config.inRule === "double" && !match.currentLeg.hasStarted[0]
+            }
+            checkoutHint={hint0}
+          />
+          <PlayerPanel
+            name={match.config.players[1]}
+            live={isX01 ? displayRemaining(match, 1) : (match.currentLeg.highlowBest[1] ?? 0)}
+            showRemaining={isX01}
+            active={p === 1}
+            legsWon={match.legsWon[1]}
+            turnDarts={p === 1 ? turnDarts : []}
+            side="right"
+            accent="#e63946"
+            avg={stats[1].threeDartAvg}
+            dartsThrown={stats[1].totalDarts}
+            notStartedYet={
+              isX01 && match.config.inRule === "double" && !match.currentLeg.hasStarted[1]
+            }
+            checkoutHint={hint1}
+          />
+        </div>
+      )}
 
       <div className="px-3 md:px-6 py-2.5 border-t border-border-soft bg-surface flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2.5 flex-wrap">
-          {isX01 && needsDoubleIn ? (
+          {isTraining && trainingTarget ? (
+            <span className="f-mono text-xs text-bone">
+              Hit{" "}
+              <span className="f-display font-black text-electric">
+                {targetLabel(trainingTarget)}
+              </span>
+            </span>
+          ) : isX01 && needsDoubleIn ? (
             <>
               <Tag color="#e63946" bg="#e6394615">
                 NEEDS DOUBLE IN
@@ -223,7 +264,7 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
           )}
         </div>
         <div className="f-serif italic text-sm text-bone">
-          {match.config.players[p]} to throw
+          {isTraining ? "your throw" : `${match.config.players[p]} to throw`}
           <span className="f-mono not-italic text-xs ml-2 text-muted">
             · dart {turnDarts.length + 1}/3
           </span>

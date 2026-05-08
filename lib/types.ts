@@ -80,17 +80,63 @@ export interface CompletedLeg {
   startingPlayer: 0 | 1;
 }
 
-export type GameMode = "x01" | "highlow";
+export type GameMode = "x01" | "highlow" | "training";
 export type InRule = "straight" | "double";
 export type OutRule = "straight" | "double" | "master";
+
+export type TrainingDrill = "doubles" | "bobs27" | "checkout";
+
+export type TrainingTarget =
+  | { kind: "double"; n: number }
+  | { kind: "bull" }
+  | { kind: "checkout"; remaining: number };
+
+export type TrainingRoundOutcome =
+  | "hit"
+  | "miss"
+  | "checkout-success"
+  | "checkout-fail"
+  | "bobs-bust"
+  | "bobs-win";
+
+export interface TrainingRound {
+  target: TrainingTarget;
+  darts: Dart[];
+  hits: number;
+  outcome: TrainingRoundOutcome;
+  /** Bobs 27: running score after this round */
+  scoreAfter?: number;
+  /** Checkout: darts used to finish (if outcome === "checkout-success") */
+  finishDarts?: number;
+}
+
+export interface TrainingState {
+  drill: TrainingDrill;
+  /**
+   * Doubles + Bobs: 0..19 → D(n+1); Doubles 20 → BULL.
+   * Checkout: index into scenarios[].
+   */
+  cursor: number;
+  rounds: TrainingRound[];
+  currentDarts: Dart[];
+  /** Bobs 27 running score (start 27); unused for other drills */
+  score: number;
+  /** Checkout: pre-generated remaining values for each scenario */
+  scenarios?: number[];
+  finished: boolean;
+  finalKind?: "complete" | "bust" | "win";
+}
 
 export interface MatchConfig {
   players: [string, string];
   legsToWin: number;
   mode: GameMode;
-  startingScore: number; // 0 for highlow
+  startingScore: number; // 0 for highlow / training
   inRule?: InRule;
   outRule?: OutRule;
+  drill?: TrainingDrill;
+  /** Checkout drill: number of scenarios (default 10) */
+  scenarioCount?: number;
 }
 
 export interface Match {
@@ -101,6 +147,7 @@ export interface Match {
   winner: 0 | 1 | null;
   startedAt: number;
   endedAt?: number;
+  training?: TrainingState;
 }
 
 export type ApplyOutcome =
@@ -117,10 +164,12 @@ export type GameStatus = "waiting" | "active" | "finished";
 
 export interface GameConfig {
   mode: GameMode;
-  startingScore: number; // 0 for highlow
+  startingScore: number; // 0 for highlow / training
   legsToWin: number;
   inRule?: InRule;
   outRule?: OutRule;
+  drill?: TrainingDrill;
+  scenarioCount?: number;
 }
 
 export interface Game {
@@ -182,6 +231,19 @@ export interface TournamentMatch {
 }
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
+
+export interface TrainingStats {
+  drill: TrainingDrill;
+  totalDarts: number;
+  hits: number;          // valid hits on target (Doubles, Bobs); successful checkouts (Checkout)
+  attempts: number;      // total rounds / scenarios attempted
+  accuracyPct: number;   // hits / totalDarts * 100 for Doubles/Bobs; hits/attempts*100 for Checkout
+  longestStreak: number; // consecutive rounds with at least one hit
+  finalScore?: number;   // Bobs 27 final
+  avgFinishDarts?: number; // Checkout: avg darts per successful scenario
+  bestFinish?: number;   // Checkout: highest scenario successfully checked out
+  finalKind?: "complete" | "bust" | "win";
+}
 
 export interface PlayerStats {
   threeDartAvg: number;

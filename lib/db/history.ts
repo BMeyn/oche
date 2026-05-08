@@ -1,9 +1,15 @@
 import { sql } from "@/lib/db";
-import { computeStats } from "@/lib/scoring";
+import { computeStats, computeTrainingStats } from "@/lib/scoring";
 import { computeRankings } from "@/lib/tournament";
 import { getTournament } from "@/lib/db/tournaments";
-import type { GameConfig, Match, TournamentFormat } from "@/lib/types";
+import type { GameConfig, Match, TournamentFormat, TrainingDrill } from "@/lib/types";
 import { displayName } from "@/lib/display";
+
+export interface TrainingHistorySummary {
+  drill: TrainingDrill;
+  resultLabel: string;   // e.g. "12 / 21", "447 pts", "BUSTED"
+  metricLabel: string;   // e.g. "57% accuracy", "8/10 checkouts"
+}
 
 export interface GameHistoryItem {
   id: string;
@@ -17,6 +23,8 @@ export interface GameHistoryItem {
   tonEighty: number;
   bestFinish: number;
   isGuestGame: boolean;
+  isTraining: boolean;
+  trainingSummary?: TrainingHistorySummary;
 }
 
 export interface TournamentHistoryItem {
@@ -57,6 +65,40 @@ export async function getGameHistory(
       const match = row.match_state as Match;
       if (match.winner === null) continue;
 
+      // Training session
+      if (match.config.mode === "training" && match.training) {
+        const ts = computeTrainingStats(match.training);
+        const drill = match.training.drill;
+        let resultLabel = "";
+        let metricLabel = "";
+        if (drill === "doubles") {
+          resultLabel = `${ts.hits} / 21`;
+          metricLabel = `${ts.accuracyPct.toFixed(0)}% accuracy · streak ${ts.longestStreak}`;
+        } else if (drill === "bobs27") {
+          resultLabel = match.training.finalKind === "bust" ? "BUSTED" : `${ts.finalScore ?? 0} pts`;
+          metricLabel = `${ts.hits} hits · ${ts.totalDarts} darts`;
+        } else {
+          resultLabel = `${ts.hits} / ${ts.attempts}`;
+          metricLabel = ts.bestFinish ? `best ${ts.bestFinish}` : `${ts.accuracyPct.toFixed(0)}%`;
+        }
+        items.push({
+          id: row.id as string,
+          date: (row.finished_at as Date) ?? new Date(),
+          opponent: "",
+          config: row.config as GameConfig,
+          result: "win",
+          legsWon: 0,
+          legsLost: 0,
+          threeDartAvg: 0,
+          tonEighty: 0,
+          bestFinish: ts.bestFinish ?? 0,
+          isGuestGame: true,
+          isTraining: true,
+          trainingSummary: { drill, resultLabel, metricLabel },
+        });
+        continue;
+      }
+
       const isPlayer1 = Number(row.player1_id) === userId;
       const playerIdx = isPlayer1 ? 0 : 1;
       const opponentIdx = (1 - playerIdx) as 0 | 1;
@@ -86,6 +128,7 @@ export async function getGameHistory(
         tonEighty: myStats.tonEighty,
         bestFinish: myStats.bestFinish,
         isGuestGame: row.player2_id === null,
+        isTraining: false,
       });
     } catch {
       // skip malformed records

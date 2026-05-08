@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   applyDart, createMatch, displayRemaining, makeDart,
   undoLastDart, computeStats, sumDarts,
+  computeTrainingStats, generateCheckoutScenarios,
 } from "../lib/scoring";
-import type { Match } from "../lib/types";
+import type { Match, MatchConfig } from "../lib/types";
 
 const T = (n: number) => makeDart(3, n);
 const D = (n: number) => makeDart(2, n);
@@ -260,5 +261,189 @@ describe("Stats sanity", () => {
     expect(stats[0].totalDarts).toBe(3);
     // 100 total / 3 darts * 3 = 100
     expect(stats[0].threeDartAvg).toBe(100);
+  });
+});
+
+// ─── Training mode ────────────────────────────────────────────────
+
+const trainingBase = (drill: "doubles" | "bobs27" | "checkout", extras: Partial<MatchConfig> = {}): MatchConfig => ({
+  players: ["You", ""],
+  legsToWin: 1,
+  mode: "training",
+  startingScore: 0,
+  drill,
+  ...extras,
+});
+
+describe("Training: Doubles Practice", () => {
+  it("starts at D1 and advances cursor every 3 darts", () => {
+    let m = createMatch(trainingBase("doubles"));
+    expect(m.training?.cursor).toBe(0);
+    m = throwMany(m, [D(1), MISS, MISS]);
+    expect(m.training?.cursor).toBe(1);
+    expect(m.training?.rounds).toHaveLength(1);
+    expect(m.training?.rounds[0].hits).toBe(1);
+    expect(m.training?.rounds[0].outcome).toBe("hit");
+  });
+
+  it("only counts hits matching the current target", () => {
+    let m = createMatch(trainingBase("doubles"));
+    // cursor=0 → target D1; D5 should NOT count
+    m = throwMany(m, [D(5), D(5), D(5)]);
+    expect(m.training?.rounds[0].hits).toBe(0);
+    expect(m.training?.rounds[0].outcome).toBe("miss");
+  });
+
+  it("advances regardless of hit/miss", () => {
+    let m = createMatch(trainingBase("doubles"));
+    m = throwMany(m, [MISS, MISS, MISS]);
+    expect(m.training?.cursor).toBe(1);
+    m = throwMany(m, [MISS, MISS, MISS]);
+    expect(m.training?.cursor).toBe(2);
+  });
+
+  it("BULL is the final target and finishes the drill", () => {
+    let m = createMatch(trainingBase("doubles"));
+    // Skip through D1..D20 with all misses (20 rounds × 3 darts).
+    for (let i = 0; i < 20; i++) {
+      m = throwMany(m, [MISS, MISS, MISS]);
+    }
+    expect(m.training?.cursor).toBe(20);
+    expect(m.training?.finished).toBe(false);
+    // BULL round
+    m = throwMany(m, [BULL, MISS, MISS]);
+    expect(m.training?.cursor).toBe(21);
+    expect(m.training?.finished).toBe(true);
+    expect(m.training?.finalKind).toBe("complete");
+    expect(m.winner).toBe(0);
+    // BULL hit counted
+    expect(m.training?.rounds[20].hits).toBe(1);
+  });
+});
+
+describe("Training: Bobs 27", () => {
+  it("starts at score 27 and gains 2*n per hit", () => {
+    let m = createMatch(trainingBase("bobs27"));
+    expect(m.training?.score).toBe(27);
+    // D1 round: 1 hit = +2
+    m = throwMany(m, [D(1), MISS, MISS]);
+    expect(m.training?.score).toBe(29);
+    expect(m.training?.rounds[0].scoreAfter).toBe(29);
+  });
+
+  it("loses 2*n when all 3 darts miss", () => {
+    let m = createMatch(trainingBase("bobs27"));
+    m = throwMany(m, [MISS, MISS, MISS]); // D1 missed → -2
+    expect(m.training?.score).toBe(25);
+  });
+
+  it("busts when score drops to or below 0", () => {
+    let m = createMatch(trainingBase("bobs27"));
+    // 27 - 2 - 4 - 6 - 8 - 10 = -3 by D5 round (missed)
+    m = throwMany(m, [MISS, MISS, MISS]); // D1 → 25
+    m = throwMany(m, [MISS, MISS, MISS]); // D2 → 21
+    m = throwMany(m, [MISS, MISS, MISS]); // D3 → 15
+    m = throwMany(m, [MISS, MISS, MISS]); // D4 → 7
+    m = throwMany(m, [MISS, MISS, MISS]); // D5 → -3 BUST
+    expect(m.training?.finished).toBe(true);
+    expect(m.training?.finalKind).toBe("bust");
+    expect(m.winner).toBe(0);
+  });
+
+  it("completes after D20 round", () => {
+    let m = createMatch(trainingBase("bobs27"));
+    // Hit each double once → +2*n per round, plenty to stay positive
+    for (let n = 1; n <= 20; n++) {
+      m = throwMany(m, [D(n), MISS, MISS]);
+    }
+    expect(m.training?.finished).toBe(true);
+    expect(m.training?.finalKind).toBe("complete");
+    // 27 + 2*sum(1..20) = 27 + 420 = 447
+    expect(m.training?.score).toBe(447);
+  });
+});
+
+describe("Training: Checkout Practice", () => {
+  it("succeeds on a 1-dart double-out finish", () => {
+    let m = createMatch(trainingBase("checkout", { scenarioCount: 3 }));
+    // Force a known scenario: replace scenarios with [40, 32, 50]
+    m = { ...m, training: { ...m.training!, scenarios: [40, 32, 50] } };
+    m = throwMany(m, [D(20)]); // 40 - 40 = 0 on a double → success after 1 dart
+    expect(m.training?.cursor).toBe(1);
+    expect(m.training?.rounds[0].outcome).toBe("checkout-success");
+    expect(m.training?.rounds[0].finishDarts).toBe(1);
+  });
+
+  it("busts when landing on 1 (impossible double-out)", () => {
+    let m = createMatch(trainingBase("checkout", { scenarioCount: 1 }));
+    m = { ...m, training: { ...m.training!, scenarios: [40] } };
+    // 40 - 39 = 1 → bust
+    m = throwMany(m, [T(13)]); // T13 = 39
+    expect(m.training?.cursor).toBe(1);
+    expect(m.training?.rounds[0].outcome).toBe("checkout-fail");
+    expect(m.training?.finished).toBe(true);
+  });
+
+  it("busts when overshooting", () => {
+    let m = createMatch(trainingBase("checkout", { scenarioCount: 1 }));
+    m = { ...m, training: { ...m.training!, scenarios: [40] } };
+    // 40 → S20 (20 left) → S20 (0 left, but not double) → bust
+    m = throwMany(m, [S(20), S(20)]);
+    // Lands on 0 without double = bust → fail, drill ends
+    expect(m.training?.rounds[0].outcome).toBe("checkout-fail");
+  });
+
+  it("auto-advances after 3 darts without finish", () => {
+    let m = createMatch(trainingBase("checkout", { scenarioCount: 2 }));
+    m = { ...m, training: { ...m.training!, scenarios: [60, 40] } };
+    m = throwMany(m, [S(10), S(10), S(10)]); // 60 → 50 → 40 → 30, no finish
+    expect(m.training?.cursor).toBe(1);
+    expect(m.training?.rounds[0].outcome).toBe("checkout-fail");
+  });
+
+  it("finishes after the last scenario", () => {
+    let m = createMatch(trainingBase("checkout", { scenarioCount: 2 }));
+    m = { ...m, training: { ...m.training!, scenarios: [40, 32] } };
+    m = throwMany(m, [D(20)]); // scenario 1 success
+    m = throwMany(m, [D(16)]); // scenario 2 success
+    expect(m.training?.finished).toBe(true);
+    expect(m.winner).toBe(0);
+    const stats = computeTrainingStats(m.training!);
+    expect(stats.hits).toBe(2);
+    expect(stats.attempts).toBe(2);
+    expect(stats.avgFinishDarts).toBe(1);
+  });
+});
+
+describe("Training: undo and helpers", () => {
+  it("undoes only within the current turn", () => {
+    let m = createMatch(trainingBase("doubles"));
+    m = throwMany(m, [D(1), MISS]);
+    expect(m.training?.currentDarts).toHaveLength(2);
+    m = undoLastDart(m);
+    expect(m.training?.currentDarts).toHaveLength(1);
+    m = undoLastDart(m);
+    expect(m.training?.currentDarts).toHaveLength(0);
+    // No-op when nothing to undo
+    const before = m;
+    m = undoLastDart(m);
+    expect(m).toBe(before);
+  });
+
+  it("computeStats returns zeros for training mode", () => {
+    let m = createMatch(trainingBase("doubles"));
+    m = throwMany(m, [D(1), D(1), D(1)]);
+    const [s0] = computeStats(m);
+    expect(s0.totalDarts).toBe(0);
+    expect(s0.threeDartAvg).toBe(0);
+  });
+
+  it("generateCheckoutScenarios returns N values in checkout range", () => {
+    const scen = generateCheckoutScenarios(8, 42);
+    expect(scen).toHaveLength(8);
+    for (const v of scen) {
+      expect(v).toBeGreaterThanOrEqual(2);
+      expect(v).toBeLessThanOrEqual(170);
+    }
   });
 });

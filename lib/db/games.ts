@@ -32,11 +32,15 @@ export async function createGame(
 ): Promise<Game> {
   const db = requireSql();
 
-  if (guestName) {
+  const isTraining = config.mode === "training";
+  if (guestName || isTraining) {
     const [p1row] = await db`SELECT display_name FROM users WHERE id = ${userId}`;
     const matchConfig = {
       ...config,
-      players: [displayName(player1Email, p1row?.display_name as string | null), guestName.trim()] as [string, string],
+      players: [
+        displayName(player1Email, p1row?.display_name as string | null),
+        isTraining ? "" : guestName!.trim(),
+      ] as [string, string],
     };
     const initialMatch = createMatch(matchConfig);
     const [row] = await db`

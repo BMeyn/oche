@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, LogOut, Trophy, Clock } from "lucide-react";
+import { Plus, LogOut, Trophy, Clock, Target } from "lucide-react";
 import { BrandMark } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { CreateGameForm } from "./CreateGameForm";
+import { CreateTrainingForm } from "./CreateTrainingForm";
 import { OpenGames } from "./OpenGames";
 import { CreateTournamentForm } from "@/components/tournament/CreateTournamentForm";
 import { YourTournaments } from "@/components/tournament/YourTournaments";
@@ -21,6 +22,7 @@ export function LobbyPage({ user, pendingFriendRequests }: Props) {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [showCreateTournament, setShowCreateTournament] = useState(false);
+  const [showCreateTraining, setShowCreateTraining] = useState(false);
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -97,6 +99,14 @@ export function LobbyPage({ user, pendingFriendRequests }: Props) {
               <Trophy className="w-5 h-5" strokeWidth={2} />
               Tournament
             </button>
+            <button
+              onClick={() => setShowCreateTraining(true)}
+              className="flex items-center gap-2.5 f-display font-black text-xl uppercase px-6 py-3.5 border border-border"
+              style={{ color: "#f2e8d0" }}
+            >
+              <Target className="w-5 h-5" strokeWidth={2} />
+              Practice
+            </button>
           </div>
 
           <p className="f-mono text-sm text-muted max-w-sm">
@@ -119,6 +129,7 @@ export function LobbyPage({ user, pendingFriendRequests }: Props) {
 
       {showCreate && <CreateGameForm onClose={() => setShowCreate(false)} />}
       {showCreateTournament && <CreateTournamentForm onClose={() => setShowCreateTournament(false)} />}
+      {showCreateTraining && <CreateTrainingForm onClose={() => setShowCreateTraining(false)} />}
     </div>
   );
 }

@@ -40,3 +40,33 @@
 		level INFO
 	}
 }
+
+# Grafana monitoring dashboard.
+# Only reachable when DOMAIN is a real hostname (e.g. oche.cloud) — the
+# block matches `grafana.<DOMAIN>` and Caddy will obtain a Let's Encrypt
+# cert automatically. For local dev (DOMAIN=:80) this block is inert;
+# uncomment the `127.0.0.1:3001:3000` port mapping on the grafana service
+# in docker-compose.yml to access it directly.
+#
+# Auth is enforced by Grafana itself (admin login, sign-up disabled,
+# anonymous disabled — see GF_* env vars in docker-compose.yml).
+grafana.{$DOMAIN} {
+	encode zstd gzip
+
+	reverse_proxy grafana:3000 {
+		header_up X-Real-IP {remote_host}
+	}
+
+	header {
+		-Server
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+}

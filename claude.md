@@ -235,7 +235,18 @@ AUTH_SECRET=                # openssl rand -hex 32
 RESEND_API_KEY=             # from resend.com (optional in dev — logs link to console)
 RESEND_FROM_DOMAIN=contact.oche.cloud  # Resend-verified sending domain
 DOMAIN=oche.cloud           # Caddy domain (NO :80 suffix — breaks HTTPS)
+GRAFANA_ADMIN_USER=admin    # Grafana login user (defaults to admin)
+GRAFANA_ADMIN_PASSWORD=     # Grafana login password — required for monitoring dashboard
 ```
+
+The Grafana dashboard lives at `https://grafana.${DOMAIN}` (Caddy proxies it,
+auto-HTTPS). Provisioned read-only datasource + dashboard live in `grafana/`:
+
+- `grafana/provisioning/datasources/postgres.yml` — Postgres datasource (uses POSTGRES_* env vars)
+- `grafana/provisioning/dashboards/dashboards.yml` — file provider pointing at the dashboards folder
+- `grafana/dashboards/oche-overview.json` — single dashboard: registered users, games-by-status, active games table, DB size
+
+Set up DNS: `grafana.<your-domain>` A record → VPS IP. The dashboard panels run pure SQL against the live DB; they re-use the `displayName` fallback (`COALESCE(NULLIF(TRIM(display_name),''), split_part(email,'@',1))`) so player names match the app UI.
 
 ## DB migrations
 

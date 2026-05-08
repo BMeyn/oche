@@ -1,0 +1,21 @@
+apiVersion: 1
+
+# Provisioned at Grafana startup. Reads $POSTGRES_* from the container env
+# (see docker-compose.yml). Marked editable: false so dashboards can't
+# accidentally mutate it via the UI.
+datasources:
+  - name: oche-postgres
+    type: postgres
+    uid: oche-postgres
+    access: proxy
+    url: db:5432
+    user: ${POSTGRES_USER}
+    isDefault: true
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    editable: false

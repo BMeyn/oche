@@ -115,7 +115,7 @@ export function PlayerPanel({
             className="f-mono text-[9px] uppercase"
             style={{
               letterSpacing: "0.22em",
-              color: active ? "#d4ff3a" : "#6d736f",
+              color: active ? "#d4ff3a" : "#d8cdaf",
             }}
           >
             Finish
@@ -126,9 +126,9 @@ export function PlayerPanel({
                 key={i}
                 className="f-display font-bold text-[11px] px-1.5 py-0.5 border"
                 style={{
-                  borderColor: active ? "#d4ff3a" : "#2a332d",
-                  background: active ? "#d4ff3a14" : "#0a0e0c",
-                  color: active ? "#d4ff3a" : "#d8cdaf",
+                  borderColor: active ? "#d4ff3a" : "#3a4540",
+                  background: active ? "#d4ff3a14" : "#1a221e",
+                  color: active ? "#d4ff3a" : "#f2e8d0",
                 }}
               >
                 {h}

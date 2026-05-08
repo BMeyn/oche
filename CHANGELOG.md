@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/BMeyn/oche/compare/v1.6.0...v1.7.0) (2026-05-08)
+
+
+### Features
+
+* Rerun releases with same version ([#16](https://github.com/BMeyn/oche/issues/16)) ([df850cc](https://github.com/BMeyn/oche/commit/df850cc34947f810449d254e358cde1838bd04cc))
+
 # [1.6.0](https://github.com/BMeyn/oche/compare/v1.5.0...v1.6.0) (2026-05-08)
 
 

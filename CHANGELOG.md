@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/BMeyn/oche/compare/v1.8.0...v1.9.0) (2026-05-09)
+
+
+### Features
+
+* Restrict /api/games/[id]/state and /api/games/[id] to game participants ([#19](https://github.com/BMeyn/oche/issues/19)) ([d931e89](https://github.com/BMeyn/oche/commit/d931e89b341372712a8f1a03a992b4ccd0c859f6))
+
 # [1.8.0](https://github.com/BMeyn/oche/compare/v1.7.0...v1.8.0) (2026-05-09)
 
 

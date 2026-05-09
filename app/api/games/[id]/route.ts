@@ -10,6 +10,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const game = await getGame(id);
   if (!game) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  if (game.status !== "waiting") {
+    if (game.player1Id !== user.id && game.player2Id !== user.id) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+  }
+
   return NextResponse.json(game);
 }
 

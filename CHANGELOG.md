@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/BMeyn/oche/compare/v1.11.0...v1.12.0) (2026-05-09)
+
+
+### Features
+
+* Improve metric link invite email deliverability ([#22](https://github.com/BMeyn/oche/issues/22)) ([0f36d45](https://github.com/BMeyn/oche/commit/0f36d457960a2d34a060b2bc46db93b15171285f))
+
 # [1.11.0](https://github.com/BMeyn/oche/compare/v1.10.0...v1.11.0) (2026-05-09)
 
 

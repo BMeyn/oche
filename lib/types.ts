@@ -18,10 +18,26 @@ export interface FriendEntry {
   avatarColor: string;
   status: "pending" | "accepted";
   direction: "incoming" | "outgoing";
-  // aggregate stats — only populated for accepted friends
+  // head-to-head stats vs the viewer — only populated for accepted friends
   gamesPlayed?: number;
-  winRate?: number;      // 0–100
+  winRate?: number;      // 0–100, viewer's win rate against this friend
   threeDartAvg?: number;
+}
+
+export interface HeadToHeadRecentMatch {
+  gameId: string;
+  finishedAt: Date;
+  viewerLegs: number;
+  targetLegs: number;
+  viewerWon: boolean;
+}
+
+export interface HeadToHead {
+  gamesPlayed: number;
+  viewerWins: number;
+  targetWins: number;
+  lastMeeting: Date | null;
+  recent: HeadToHeadRecentMatch[]; // newest first, max 5
 }
 
 export interface Session {

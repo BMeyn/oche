@@ -13,9 +13,10 @@ interface Props {
   onRestart: () => void;
   onNewMatch: () => void;
   onBackToTournament?: () => void;
+  rematching?: boolean;
 }
 
-export function SummaryScreen({ match, onRestart, onNewMatch, onBackToTournament }: Props) {
+export function SummaryScreen({ match, onRestart, onNewMatch, onBackToTournament, rematching }: Props) {
   if (match.config.mode === "training" && match.training) {
     return (
       <TrainingSummary match={match} onNewMatch={onNewMatch} onRestart={onRestart} />
@@ -102,9 +103,10 @@ export function SummaryScreen({ match, onRestart, onNewMatch, onBackToTournament
             <>
               <button
                 onClick={onRestart}
-                className="f-display font-black text-2xl uppercase px-6 py-4 flex items-center gap-3 bg-electric text-ink"
+                disabled={rematching}
+                className="f-display font-black text-2xl uppercase px-6 py-4 flex items-center gap-3 bg-electric text-ink disabled:opacity-60"
               >
-                Rematch <RotateCcw className="w-6 h-6" strokeWidth={3} />
+                {rematching ? "Creating…" : "Rematch"} <RotateCcw className="w-6 h-6" strokeWidth={3} />
               </button>
               <button
                 onClick={onNewMatch}

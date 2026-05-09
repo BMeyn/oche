@@ -67,6 +67,37 @@ export async function createGame(
   return rowToGame(row);
 }
 
+export async function rematchGame(
+  userId: number,
+  userEmail: string,
+  originalGameId: string,
+): Promise<Game> {
+  const db = requireSql();
+  const [row] = await db`
+    SELECT g.config, g.player1_id, g.player2_id, g.match_state
+    FROM games g
+    WHERE g.id = ${originalGameId}
+  `;
+  if (!row) throw new Error("Original game not found");
+
+  const player1Id = Number(row.player1_id);
+  const player2Id = row.player2_id ? Number(row.player2_id) : null;
+  if (player1Id !== userId && player2Id !== userId) {
+    throw new Error("Not a participant in original game");
+  }
+
+  const config = row.config as GameConfig;
+  if (config.mode === "training") throw new Error("Training games cannot be rematched");
+
+  if (player2Id === null) {
+    const matchState = row.match_state as Match | null;
+    const guestName = matchState?.config.players[1]?.trim() || "Guest";
+    return createGame(userId, userEmail, config, guestName);
+  }
+
+  return createGame(userId, userEmail, config);
+}
+
 export async function joinGame(gameId: string, player2: { id: number; email: string }): Promise<Game> {
   const db = requireSql();
 

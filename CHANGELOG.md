@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/BMeyn/oche/compare/v1.10.0...v1.11.0) (2026-05-09)
+
+
+### Features
+
+* Keep player scores visible between turns ([#21](https://github.com/BMeyn/oche/issues/21)) ([34d662b](https://github.com/BMeyn/oche/commit/34d662b2faa9de6b4e44cb64bf5c4f17efd45e82))
+
 # [1.10.0](https://github.com/BMeyn/oche/compare/v1.9.0...v1.10.0) (2026-05-09)
 
 

@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/BMeyn/oche/compare/v1.9.0...v1.10.0) (2026-05-09)
+
+
+### Features
+
+* Add ETag support to game polling ([#20](https://github.com/BMeyn/oche/issues/20)) ([922eed8](https://github.com/BMeyn/oche/commit/922eed88715a4c2dacc302bd41cb2cf456ac1717))
+
 # [1.9.0](https://github.com/BMeyn/oche/compare/v1.8.0...v1.9.0) (2026-05-09)
 
 

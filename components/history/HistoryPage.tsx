@@ -1,29 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronRight, Trophy, Target } from "lucide-react";
+import { ArrowLeft, Trophy, Target } from "lucide-react";
 import { BrandMark } from "@/components/ui/primitives";
+import { GameRow, timeAgo } from "@/components/history/GameRow";
 import type { GameHistoryItem, TournamentHistoryItem } from "@/lib/db/history";
 import type { TournamentFormat, User } from "@/lib/types";
 import { displayName as dn } from "@/lib/display";
 import { drillLabel } from "@/lib/format";
+import { aggregateRankedStats } from "@/lib/stats";
 
 interface Props {
   games: GameHistoryItem[];
   tournaments: TournamentHistoryItem[];
   user: User;
-}
-
-function timeAgo(date: Date | string): string {
-  const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (secs < 60) return "just now";
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function formatLabel(format: TournamentFormat): string {
@@ -49,16 +39,9 @@ export function HistoryPage({ games, tournaments, user }: Props) {
   const router = useRouter();
 
   // Aggregate stats — guest + training games are excluded from stats (but still shown in the list)
-  const rankedGames = games.filter((g) => !g.isGuestGame && !g.isTraining);
   const trainingGames = games.filter((g) => g.isTraining);
   const matchGames = games.filter((g) => !g.isTraining);
-  const totalGames = rankedGames.length;
-  const wins = rankedGames.filter((g) => g.result === "win").length;
-  const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
-  const avgSum = rankedGames.reduce((s, g) => s + g.threeDartAvg, 0);
-  const avg = totalGames > 0 ? (avgSum / totalGames).toFixed(2) : "—";
-  const total180s = rankedGames.reduce((s, g) => s + g.tonEighty, 0);
-  const bestFinish = rankedGames.reduce((best, g) => (g.bestFinish > best ? g.bestFinish : best), 0);
+  const { totalGames, winRate, threeDartAvg: avg, total180s, bestFinish } = aggregateRankedStats(games);
 
   return (
     <div className="min-h-screen flex flex-col bg-ink">
@@ -111,70 +94,7 @@ export function HistoryPage({ games, tournaments, user }: Props) {
             ) : (
               <div className="space-y-1.5">
                 {matchGames.map((g) => (
-                  <div
-                    key={g.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => router.push(`/history/${g.id}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        router.push(`/history/${g.id}`);
-                      }
-                    }}
-                    className="border border-border-soft flex items-center justify-between px-4 py-3 gap-3 cursor-pointer hover:border-border transition-colors"
-                    style={{
-                      background: g.isGuestGame ? "#0c0f0e" : g.result === "win" ? "#0f1a12" : "#0e1010",
-                      opacity: g.isGuestGame ? 0.5 : 1,
-                    }}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className="f-display font-black text-base"
-                          style={{ color: g.isGuestGame ? "#6d736f" : g.result === "win" ? "#d4ff3a" : "#e63946" }}
-                        >
-                          {g.result === "win" ? "W" : "L"}
-                        </span>
-                        <span className="f-display font-black text-base" style={{ color: g.isGuestGame ? "#6d736f" : "#f2e8d0" }}>
-                          vs {g.opponent}
-                        </span>
-                        <span className="f-mono text-xs text-muted">
-                          {g.legsWon}–{g.legsLost}
-                        </span>
-                        {g.isGuestGame && (
-                          <span className="f-mono text-[9px] uppercase text-muted border border-border-soft px-1.5 py-0.5" style={{ letterSpacing: "0.15em" }}>
-                            guest · unranked
-                          </span>
-                        )}
-                      </div>
-                      <div className="f-mono text-[11px] text-muted mt-0.5 flex items-center gap-3 flex-wrap">
-                        <span>
-                          avg{" "}
-                          <span className="text-bone">{g.threeDartAvg.toFixed(2)}</span>
-                        </span>
-                        {g.tonEighty > 0 && (
-                          <span className="text-oche-red font-bold">
-                            {g.tonEighty} × 180
-                          </span>
-                        )}
-                        {g.bestFinish > 0 && (
-                          <span>
-                            best out <span className="text-bone">{g.bestFinish}</span>
-                          </span>
-                        )}
-                        <span className="ml-auto">{timeAgo(g.date)}</span>
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right flex items-center gap-2">
-                      <div className="f-mono text-[10px] text-muted" style={{ letterSpacing: "0.1em" }}>
-                        {g.config.mode === "highlow"
-                          ? "HIGH-LOW"
-                          : `${g.config.startingScore}`}
-                      </div>
-                      <ChevronRight className="w-3.5 h-3.5 text-muted" />
-                    </div>
-                  </div>
+                  <GameRow key={g.id} game={g} href={`/history/${g.id}`} />
                 ))}
               </div>
             )}
@@ -299,7 +219,7 @@ function Section({ label, count, children }: { label: string; count: number; chi
   );
 }
 
-function StatBox({ label, value, highlight, accent }: { label: string; value: string; highlight?: boolean; accent?: boolean }) {
+export function StatBox({ label, value, highlight, accent }: { label: string; value: string; highlight?: boolean; accent?: boolean }) {
   return (
     <div className="border border-border-soft p-4" style={{ background: "#0d1210" }}>
       <div className="f-mono text-[9px] uppercase text-muted mb-1" style={{ letterSpacing: "0.2em" }}>{label}</div>

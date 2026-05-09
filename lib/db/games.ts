@@ -68,6 +68,37 @@ export async function createGame(
   return rowToGame(row);
 }
 
+export async function rematchGame(
+  userId: number,
+  userEmail: string,
+  originalGameId: string,
+): Promise<Game> {
+  const db = requireSql();
+  const [row] = await db`
+    SELECT g.config, g.player1_id, g.player2_id, g.match_state
+    FROM games g
+    WHERE g.id = ${originalGameId}
+  `;
+  if (!row) throw new Error("Original game not found");
+
+  const player1Id = Number(row.player1_id);
+  const player2Id = row.player2_id ? Number(row.player2_id) : null;
+  if (player1Id !== userId && player2Id !== userId) {
+    throw new Error("Not a participant in original game");
+  }
+
+  const config = row.config as GameConfig;
+  if (config.mode === "training") throw new Error("Training games cannot be rematched");
+
+  if (player2Id === null) {
+    const matchState = row.match_state as Match | null;
+    const guestName = matchState?.config.players[1]?.trim() || "Guest";
+    return createGame(userId, userEmail, config, guestName);
+  }
+
+  return createGame(userId, userEmail, config);
+}
+
 export async function joinGame(gameId: string, player2: { id: number; email: string }): Promise<Game> {
   const db = requireSql();
 
@@ -126,11 +157,20 @@ export async function getGame(id: string): Promise<Game | null> {
   return rowToGame(row);
 }
 
-export async function getGameVersion(id: string): Promise<string | null> {
+export interface GameVersion {
+  version: string;
+  status: Game["status"];
+  player1Id: number;
+  player2Id: number | null;
+}
+
+export async function getGameVersion(id: string): Promise<GameVersion | null> {
   const db = requireSql();
   const [row] = await db`
     SELECT
       g.status,
+      g.player1_id,
+      g.player2_id,
       g.started_at,
       g.finished_at,
       g.match_state->'currentLeg'->>'currentPlayer' AS current_player,
@@ -143,7 +183,12 @@ export async function getGameVersion(id: string): Promise<string | null> {
   const startedAt = row.started_at instanceof Date ? row.started_at.toISOString() : "";
   const finishedAt = row.finished_at instanceof Date ? row.finished_at.toISOString() : "";
   const raw = `${row.status}|${startedAt}|${finishedAt}|${row.current_player ?? ""}|${row.leg_count ?? 0}|${row.dart_count ?? 0}`;
-  return createHash("sha1").update(raw).digest("hex").slice(0, 12);
+  return {
+    version: createHash("sha1").update(raw).digest("hex").slice(0, 12),
+    status: row.status as Game["status"],
+    player1Id: Number(row.player1_id),
+    player2Id: row.player2_id ? Number(row.player2_id) : null,
+  };
 }
 
 export async function getMyGamesVersion(userId: number): Promise<string> {

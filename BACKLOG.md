@@ -38,7 +38,7 @@ Ideas and planned features for OCHE, roughly grouped by area. Not prioritised to
 
 ## Match flow improvements
 
-- [ ] **Rematch flow** — after summary, "Rematch" auto-creates a new game with same config and sends both players back.
+- [x] **Rematch flow** — after summary, "Rematch" auto-creates a new game with same config and sends both players back.
 - [x] **Checkout suggestions** — smart finish hints shown in the scoring UI (up to 170, 1/2/3-dart combos from `lib/checkouts.ts`).
 - [ ] **Undo across turns** — currently undo works within a turn; allow undoing the previous completed turn.
 - [ ] **Per-game detail view** — click into a finished game to see full leg-by-leg breakdown, dart-by-dart replay data.

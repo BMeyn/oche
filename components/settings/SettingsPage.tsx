@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowLeft, UserPlus, Check, X, Trash2 } from "lucide-react";
 import { BrandMark } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
@@ -320,7 +321,12 @@ export function SettingsPage({ user, friends: initialFriends, requests: initialR
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar name={dn(f.email, f.displayName)} color={f.avatarColor} />
                       <div>
-                        <div className="f-display font-black text-cream text-base">{dn(f.email, f.displayName)}</div>
+                        <Link
+                          href={`/player/${f.userId}`}
+                          className="f-display font-black text-cream text-base hover:text-electric transition-colors"
+                        >
+                          {dn(f.email, f.displayName)}
+                        </Link>
                         <div className="f-mono text-[11px] text-muted flex gap-3">
                           <span>{f.email}</span>
                           {f.gamesPlayed !== undefined && f.gamesPlayed > 0 && (
@@ -376,10 +382,13 @@ export function SettingsPage({ user, friends: initialFriends, requests: initialR
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
                             <Avatar name={dn(entry.email, entry.displayName)} color={entry.avatarColor} size="sm" />
-                            <span className="f-display font-black text-cream text-base">
+                            <Link
+                              href={`/player/${entry.userId}`}
+                              className="f-display font-black text-cream text-base hover:text-electric transition-colors"
+                            >
                               {dn(entry.email, entry.displayName)}
                               {entry.isSelf && <span className="text-electric text-xs ml-1.5">you</span>}
-                            </span>
+                            </Link>
                           </div>
                         </td>
                         <td className="px-3 py-3 f-mono text-sm text-bone">{entry.gamesPlayed ?? "—"}</td>

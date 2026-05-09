@@ -41,6 +41,10 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
   const turnDarts = isTraining
     ? (match.training?.currentDarts ?? [])
     : match.currentLeg.currentTurnDarts;
+  const lastTurnP0 = match.currentLeg.turns[0].at(-1);
+  const lastTurnP1 = match.currentLeg.turns[1].at(-1);
+  const dartsForP0 = p === 0 ? turnDarts : (lastTurnP0?.darts ?? []);
+  const dartsForP1 = p === 1 ? turnDarts : (lastTurnP1?.darts ?? []);
   const stats = useMemo(() => computeStats(match), [match]);
 
   const needsDoubleIn =
@@ -206,7 +210,7 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
             showRemaining={isX01}
             active={p === 0}
             legsWon={match.legsWon[0]}
-            turnDarts={p === 0 ? turnDarts : []}
+            turnDarts={dartsForP0}
             side="left"
             accent="#d4ff3a"
             avg={stats[0].threeDartAvg}
@@ -222,7 +226,7 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
             showRemaining={isX01}
             active={p === 1}
             legsWon={match.legsWon[1]}
-            turnDarts={p === 1 ? turnDarts : []}
+            turnDarts={dartsForP1}
             side="right"
             accent="#e63946"
             avg={stats[1].threeDartAvg}

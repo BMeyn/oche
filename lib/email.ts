@@ -1,5 +1,7 @@
 // lib/email.ts — sends the magic login link via Resend
 
+import { randomUUID } from "node:crypto";
+
 export async function sendMagicLink(to: string, url: string): Promise<void> {
   // Always log the link — handy for local dev where email isn't wired up
   console.log(`[magic-link] ${to} → ${url}`);
@@ -11,6 +13,8 @@ export async function sendMagicLink(to: string, url: string): Promise<void> {
   // Sending domain must be verified in Resend — can differ from APP_URL's hostname
   const domain = process.env.RESEND_FROM_DOMAIN ?? new URL(appUrl).hostname;
 
+  const preheader = "Tap the button to finish signing in — link expires in 15 minutes.";
+
   const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -20,6 +24,7 @@ export async function sendMagicLink(to: string, url: string): Promise<void> {
   <title>Your OCHE login link</title>
 </head>
 <body style="margin:0;padding:0;background:#0a0e0c;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#0a0e0c;">${preheader}</div>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0e0c;padding:48px 16px;">
     <tr>
       <td align="center">
@@ -56,6 +61,19 @@ export async function sendMagicLink(to: string, url: string): Promise<void> {
 </body>
 </html>`;
 
+  const text = `Sign in to OCHE
+==============
+
+Someone (hopefully you) requested a login link for ${to}.
+
+Open this link to sign in (expires in 15 minutes):
+${url}
+
+If you didn't request this, you can safely ignore this email. The link can only be used once.
+
+${domain}
+`;
+
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -67,6 +85,10 @@ export async function sendMagicLink(to: string, url: string): Promise<void> {
       to,
       subject: "Your OCHE login link",
       html,
+      text,
+      headers: {
+        "X-Entity-Ref-ID": randomUUID(),
+      },
     }),
   });
 

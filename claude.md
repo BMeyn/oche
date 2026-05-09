@@ -36,7 +36,7 @@ What's verified working:
 - **Friends system:** send/accept/decline/remove requests by email. Friend list with head-to-head stats + win rate leaderboard. Notification badge on lobby avatar when requests pending.
 - **Settings page** (`/settings`): edit display name, pick avatar colour, manage friends.
 - **Feedback button:** floating on all app pages, emails bjarne.meyn@icloud.com via Resend (or logs locally).
-- Applied migrations: `001_auth.sql` → `005_profiles.sql`
+- Applied migrations: `001_auth.sql` → `006_game_player_indexes.sql`
 
 ## Tech stack & why
 
@@ -205,7 +205,8 @@ oche/
 │           ├── 002_games.sql         games table
 │           ├── 003_tournaments.sql   tournaments, tournament_players, tournament_matches tables
 │           ├── 004_season_halves.sql ALTER tournaments ADD COLUMN season_halves
-│           └── 005_profiles.sql      ALTER users ADD display_name, avatar_color; CREATE friend_requests
+│           ├── 005_profiles.sql      ALTER users ADD display_name, avatar_color; CREATE friend_requests
+│           └── 006_game_player_indexes.sql  per-player composite indexes for getMyGames/getGameHistory
 ├── tests/
 │   └── scoring.test.ts               24 tests covering all rule branches
 ├── scripts/

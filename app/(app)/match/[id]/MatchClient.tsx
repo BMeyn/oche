@@ -33,13 +33,18 @@ export function MatchClient({ game: initialGame, currentUserId, tournamentId }: 
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [rematchPending, setRematchPending] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const etagRef = useRef<string | null>(null);
 
   const gameId = initialGame.id;
   const isCreator = initialGame.player1Id === currentUserId;
 
   const poll = useCallback(async () => {
-    const res = await fetch(`/api/games/${gameId}`);
+    const headers: HeadersInit = etagRef.current ? { "If-None-Match": etagRef.current } : {};
+    const res = await fetch(`/api/games/${gameId}`, { headers });
+    if (res.status === 304) return;
     if (!res.ok) return;
+    const newEtag = res.headers.get("ETag");
+    if (newEtag) etagRef.current = newEtag;
     const g: Game = await res.json();
     setStatus(g.status);
     if (g.matchState) setMatch(g.matchState);
@@ -90,6 +95,7 @@ export function MatchClient({ game: initialGame, currentUserId, tournamentId }: 
     setJoining(true);
     const res = await fetch(`/api/games/${gameId}/join`, { method: "POST" });
     if (res.ok) {
+      etagRef.current = null;
       const g: Game = await res.json();
       setStatus(g.status);
       if (g.matchState) setMatch(g.matchState);

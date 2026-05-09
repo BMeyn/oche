@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Game, GameConfig } from "@/lib/types";
 import { drillLabel } from "@/lib/format";
@@ -31,10 +31,16 @@ export function OpenGames({ currentUserId }: { currentUserId: number }) {
   const router = useRouter();
   const [games, setGames] = useState<Game[]>([]);
   const [leaving, setLeaving] = useState<string | null>(null);
+  const etagRef = useRef<string | null>(null);
 
   const fetchGames = useCallback(async () => {
-    const res = await fetch("/api/games");
-    if (res.ok) setGames(await res.json());
+    const headers: HeadersInit = etagRef.current ? { "If-None-Match": etagRef.current } : {};
+    const res = await fetch("/api/games", { headers });
+    if (res.status === 304) return;
+    if (!res.ok) return;
+    const newEtag = res.headers.get("ETag");
+    if (newEtag) etagRef.current = newEtag;
+    setGames(await res.json());
   }, []);
 
   useEffect(() => {
@@ -46,6 +52,7 @@ export function OpenGames({ currentUserId }: { currentUserId: number }) {
   const leave = async (gameId: string) => {
     setLeaving(gameId);
     await fetch(`/api/games/${gameId}`, { method: "DELETE" });
+    etagRef.current = null;
     setGames((prev) => prev.filter((g) => g.id !== gameId));
     setLeaving(null);
   };

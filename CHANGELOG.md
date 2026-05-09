@@ -1,3 +1,11 @@
+# [1.8.0](https://github.com/BMeyn/oche/compare/v1.7.0...v1.8.0) (2026-05-09)
+
+
+### Features
+
+* Build public player profile pages ([#18](https://github.com/BMeyn/oche/issues/18)) ([61438ca](https://github.com/BMeyn/oche/commit/61438ca48cc2ef6809f726591e43199719e6cceb))
+* Implement functional Rematch game creation ([#17](https://github.com/BMeyn/oche/issues/17)) ([7a22f16](https://github.com/BMeyn/oche/commit/7a22f16d7efe716f01524c8e34855198532b243b))
+
 # [1.7.0](https://github.com/BMeyn/oche/compare/v1.6.0...v1.7.0) (2026-05-08)
 
 

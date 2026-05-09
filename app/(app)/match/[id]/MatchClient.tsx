@@ -31,6 +31,7 @@ export function MatchClient({ game: initialGame, currentUserId, tournamentId }: 
   const [copied, setCopied] = useState(false);
   const [copiedFor, setCopiedFor] = useState<number | null>(null);
   const [friends, setFriends] = useState<FriendEntry[]>([]);
+  const [rematchPending, setRematchPending] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const gameId = initialGame.id;
@@ -98,6 +99,22 @@ export function MatchClient({ game: initialGame, currentUserId, tournamentId }: 
   };
 
   const goLobby = () => router.push("/lobby");
+
+  const handleRematch = async () => {
+    if (rematchPending) return;
+    setRematchPending(true);
+    const res = await fetch("/api/games", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rematchOf: gameId }),
+    });
+    if (!res.ok) {
+      setRematchPending(false);
+      return;
+    }
+    const newGame: Game = await res.json();
+    router.replace(`/match/${newGame.id}`);
+  };
 
   // ── Visitor: invited player sees a join screen ────────────────────────────
   if (status === "waiting" && !isCreator) {
@@ -218,12 +235,14 @@ export function MatchClient({ game: initialGame, currentUserId, tournamentId }: 
 
   // ── Match finished ────────────────────────────────────────────────────────
   if (status === "finished" && match?.winner != null) {
+    const isTraining = match.config.mode === "training";
     return (
       <SummaryScreen
         match={match}
-        onRestart={goLobby}
+        onRestart={isTraining ? goLobby : handleRematch}
         onNewMatch={goLobby}
         onBackToTournament={tournamentId ? () => router.push(`/tournament/${tournamentId}`) : undefined}
+        rematching={rematchPending}
       />
     );
   }

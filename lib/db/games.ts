@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { sql } from "@/lib/db";
 import { createMatch } from "@/lib/scoring";
 import type { Game, GameConfig, Match } from "@/lib/types";
@@ -123,6 +124,41 @@ export async function getGame(id: string): Promise<Game | null> {
   `;
   if (!row) return null;
   return rowToGame(row);
+}
+
+export async function getGameVersion(id: string): Promise<string | null> {
+  const db = requireSql();
+  const [row] = await db`
+    SELECT
+      g.status,
+      g.started_at,
+      g.finished_at,
+      g.match_state->'currentLeg'->>'currentPlayer' AS current_player,
+      jsonb_array_length(COALESCE(g.match_state->'legHistory', '[]'::jsonb)) AS leg_count,
+      jsonb_array_length(COALESCE(g.match_state->'currentLeg'->'currentTurnDarts', '[]'::jsonb)) AS dart_count
+    FROM games g
+    WHERE g.id = ${id}
+  `;
+  if (!row) return null;
+  const startedAt = row.started_at instanceof Date ? row.started_at.toISOString() : "";
+  const finishedAt = row.finished_at instanceof Date ? row.finished_at.toISOString() : "";
+  const raw = `${row.status}|${startedAt}|${finishedAt}|${row.current_player ?? ""}|${row.leg_count ?? 0}|${row.dart_count ?? 0}`;
+  return createHash("sha1").update(raw).digest("hex").slice(0, 12);
+}
+
+export async function getMyGamesVersion(userId: number): Promise<string> {
+  const db = requireSql();
+  const rows = await db`
+    SELECT g.id, g.status, g.finished_at
+    FROM games g
+    WHERE g.status != 'finished'
+      AND (g.player1_id = ${userId} OR g.player2_id = ${userId})
+    ORDER BY g.id
+  `;
+  const raw = rows
+    .map((r) => `${r.id}|${r.status}|${r.finished_at instanceof Date ? r.finished_at.toISOString() : ""}`)
+    .join(";");
+  return createHash("sha1").update(raw).digest("hex").slice(0, 12);
 }
 
 export async function getOpenGames(): Promise<Game[]> {

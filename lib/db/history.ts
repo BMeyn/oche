@@ -15,6 +15,8 @@ export interface GameHistoryItem {
   id: string;
   date: Date;
   opponent: string;
+  /** User id of the opponent, or null for guest / training games */
+  opponentUserId: number | null;
   config: GameConfig;
   result: "win" | "loss";
   legsWon: number;
@@ -85,6 +87,7 @@ export async function getGameHistory(
           id: row.id as string,
           date: (row.finished_at as Date) ?? new Date(),
           opponent: "",
+          opponentUserId: null,
           config: row.config as GameConfig,
           result: "win",
           legsWon: 0,
@@ -115,11 +118,17 @@ export async function getGameHistory(
       const opponent = opponentEmail
         ? displayName(opponentEmail, opponentDisplayName)
         : match.config.players[opponentIdx];
+      const opponentRawId = isPlayer1 ? row.player2_id : row.player1_id;
+      const opponentUserId =
+        opponentRawId === null || opponentRawId === undefined
+          ? null
+          : Number(opponentRawId);
 
       items.push({
         id: row.id as string,
         date: (row.finished_at as Date) ?? new Date(),
         opponent,
+        opponentUserId,
         config: row.config as GameConfig,
         result: match.winner === playerIdx ? "win" : "loss",
         legsWon: match.legsWon[playerIdx],

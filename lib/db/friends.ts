@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import type { FriendEntry } from "@/lib/types";
+import type { FriendEntry, HeadToHead, HeadToHeadRecentMatch, Match } from "@/lib/types";
 
 function requireSql() {
   if (!sql) throw new Error("DATABASE_URL is not configured");
@@ -68,29 +68,83 @@ export async function getFriends(userId: number): Promise<FriendEntry[]> {
 
   const friends = rows.map((r) => rowToFriend(r, userId));
 
-  // Attach aggregate stats for each friend
-  for (const f of friends) {
-    const [stats] = await db`
-      SELECT
-        COUNT(*) FILTER (WHERE g.status = 'finished') AS games_played,
-        COUNT(*) FILTER (
-          WHERE g.status = 'finished'
-            AND g.match_state IS NOT NULL
-            AND (g.match_state->>'winner')::int =
-              CASE WHEN g.player1_id = ${f.userId} THEN 0 ELSE 1 END
-        ) AS wins
-      FROM games g
-      WHERE g.status = 'finished'
-        AND g.player2_id IS NOT NULL
-        AND (g.player1_id = ${f.userId} OR g.player2_id = ${f.userId})
-    `;
-    const gamesPlayed = Number(stats.games_played ?? 0);
-    const wins = Number(stats.wins ?? 0);
-    f.gamesPlayed = gamesPlayed;
-    f.winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
-  }
+  // Attach true head-to-head stats for each friend (viewer vs that friend only).
+  await Promise.all(
+    friends.map(async (f) => {
+      const h2h = await getHeadToHead(userId, f.userId);
+      f.gamesPlayed = h2h.gamesPlayed;
+      f.winRate =
+        h2h.gamesPlayed > 0
+          ? Math.round((h2h.viewerWins / h2h.gamesPlayed) * 100)
+          : 0;
+    }),
+  );
 
   return friends;
+}
+
+export async function getHeadToHead(
+  viewerId: number,
+  targetId: number,
+): Promise<HeadToHead> {
+  if (viewerId === targetId) {
+    return { gamesPlayed: 0, viewerWins: 0, targetWins: 0, lastMeeting: null, recent: [] };
+  }
+  const db = sql;
+  if (!db) {
+    return { gamesPlayed: 0, viewerWins: 0, targetWins: 0, lastMeeting: null, recent: [] };
+  }
+
+  const rows = await db`
+    SELECT g.id, g.finished_at, g.player1_id, g.player2_id, g.match_state
+    FROM games g
+    WHERE g.status = 'finished'
+      AND g.match_state IS NOT NULL
+      AND (
+        (g.player1_id = ${viewerId} AND g.player2_id = ${targetId})
+        OR (g.player1_id = ${targetId} AND g.player2_id = ${viewerId})
+      )
+    ORDER BY g.finished_at DESC NULLS LAST
+  `;
+
+  let viewerWins = 0;
+  let targetWins = 0;
+  const recent: HeadToHeadRecentMatch[] = [];
+  let lastMeeting: Date | null = null;
+
+  for (const row of rows) {
+    try {
+      const match = row.match_state as Match;
+      if (match.winner === null) continue;
+      const viewerIsP1 = Number(row.player1_id) === viewerId;
+      const viewerIdx = (viewerIsP1 ? 0 : 1) as 0 | 1;
+      const targetIdx = (1 - viewerIdx) as 0 | 1;
+      const viewerWon = match.winner === viewerIdx;
+      if (viewerWon) viewerWins += 1;
+      else targetWins += 1;
+      const finishedAt = (row.finished_at as Date) ?? new Date();
+      if (lastMeeting === null) lastMeeting = finishedAt;
+      if (recent.length < 5) {
+        recent.push({
+          gameId: row.id as string,
+          finishedAt,
+          viewerLegs: match.legsWon[viewerIdx],
+          targetLegs: match.legsWon[targetIdx],
+          viewerWon,
+        });
+      }
+    } catch {
+      // skip malformed records
+    }
+  }
+
+  return {
+    gamesPlayed: viewerWins + targetWins,
+    viewerWins,
+    targetWins,
+    lastMeeting,
+    recent,
+  };
 }
 
 export async function sendFriendRequest(

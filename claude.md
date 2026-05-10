@@ -32,6 +32,7 @@ What's verified working:
 - Match state persisted to DB on every turn (JSONB); both devices see updates within 1.5s
 - **Tournaments:** single-elimination brackets + round-robin (with optional full-season home/away). Invite link join OR direct friend invite from waiting room. Creator starts, matches auto-advance, cancel with confirm, finished results screen with rankings.
 - **Match history:** `/history` page showing all finished games (W/L, avg, 180s, best finish) + tournament history (rank, format, W/P). Aggregate stats bar at top.
+- **Global leaderboard:** `/leaderboard` ranks all users across ranked finished games (training/guest excluded). Sort by win %, 3-dart avg, 180s, best finish, games played. Players with `< 3` games are split into a separate "Rising" tail. Viewer's own row is highlighted.
 - **User profiles:** `display_name` + `avatar_color` on `users`. Custom names shown in match, lobby, tournaments, history.
 - **Friends system:** send/accept/decline/remove requests by email. Friend list with head-to-head stats + win rate leaderboard. Notification badge on lobby avatar when requests pending.
 - **Settings page** (`/settings`): edit display name, pick avatar colour, manage friends.
@@ -283,7 +284,7 @@ The script is idempotent. Re-running is safe — already-applied migrations show
 - **Phase 3** Accounts + lobby + multi-device matches ✅ done and live on oche.cloud
 - **Phase 4** Match history / player stats pages ✅ done (`/history` with game list + tournament history + aggregate stats)
 - **Phase 5** Tournaments ✅ done (single-elim + round-robin, full-season, friend invite, cancel, results)
-- **Phase 6** Extended player profiles & leaderboards ✅ partially done (display names, avatars, friends system, settings, friend leaderboard — global leaderboard + player profile pages remain)
+- **Phase 6** Extended player profiles & leaderboards ✅ done (display names, avatars, friends system, settings, friend leaderboard, player profile pages at `/player/[id]`, global leaderboard at `/leaderboard`)
 - **Phase 7** AI vision agent for camera-based auto-scoring (user said "skip this for now")
 
 ## What to tackle next
@@ -291,8 +292,6 @@ The script is idempotent. Re-running is safe — already-applied migrations show
 See **[BACKLOG.md](BACKLOG.md)** for the full features backlog. Top candidates:
 
 - **Per-game detail view** — click into a finished game to see leg-by-leg / dart-by-dart breakdown
-- **Global leaderboard** — rank all players by avg, win rate, 180s, highest checkout
-- **Player profile page** — `/player/[id]` with match history, stats, recent form
 - **Rematch flow** — auto-create a new game with same config after summary
 
 ## Things to verify before claiming "done"

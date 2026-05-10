@@ -176,7 +176,7 @@ export type ApplyOutcome =
 
 // ─── Lobby / Games ───────────────────────────────────────────────────────────
 
-export type GameStatus = "waiting" | "active" | "finished";
+export type GameStatus = "waiting" | "active" | "finished" | "abandoned";
 
 export interface GameConfig {
   mode: GameMode;

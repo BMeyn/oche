@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Game, GameConfig } from "@/lib/types";
 import { drillLabel } from "@/lib/format";
+import { usePolling } from "@/lib/usePolling";
 
 function gameLabel(config: GameConfig): string {
   if (config.mode === "training") return drillLabel(config.drill ?? "doubles");
@@ -45,9 +46,8 @@ export function OpenGames({ currentUserId }: { currentUserId: number }) {
 
   useEffect(() => {
     fetchGames();
-    const interval = setInterval(fetchGames, 5000);
-    return () => clearInterval(interval);
   }, [fetchGames]);
+  usePolling(fetchGames, 5000);
 
   const leave = async (gameId: string) => {
     setLeaving(gameId);

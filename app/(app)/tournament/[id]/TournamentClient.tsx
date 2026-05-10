@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Check, Trophy, UserPlus } from "lucide-react";
 import type { FriendEntry, Tournament, User } from "@/lib/types";
@@ -10,6 +10,7 @@ import { BrandMark, Tag } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { displayName as dn } from "@/lib/display";
 import { computeRankings } from "@/lib/tournament";
+import { usePolling } from "@/lib/usePolling";
 
 interface Props {
   tournament: Tournament;
@@ -34,7 +35,6 @@ export function TournamentClient({ tournament: initial, currentUserId, user }: P
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [inviting, setInviting] = useState<Record<number, boolean>>({});
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const userName = dn(user.email, user.displayName);
 
   const isPlayer = t.players.some((p) => p.userId === currentUserId);
@@ -46,16 +46,7 @@ export function TournamentClient({ tournament: initial, currentUserId, user }: P
     setT(await res.json());
   }, [t.id]);
 
-  useEffect(() => {
-    if (t.status === "finished") {
-      if (pollRef.current) clearInterval(pollRef.current);
-      return;
-    }
-    pollRef.current = setInterval(poll, 5000);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [t.status, poll]);
+  usePolling(poll, 5000, t.status !== "finished");
 
   useEffect(() => {
     if (!isCreator) return;

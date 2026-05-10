@@ -196,7 +196,7 @@ export async function getMyGamesVersion(userId: number): Promise<string> {
   const rows = await db`
     SELECT g.id, g.status, g.finished_at
     FROM games g
-    WHERE g.status != 'finished'
+    WHERE g.status IN ('waiting', 'active')
       AND (g.player1_id = ${userId} OR g.player2_id = ${userId})
     ORDER BY g.id
   `;
@@ -234,7 +234,7 @@ export async function getMyGames(userId: number): Promise<Game[]> {
     FROM games g
     JOIN users u1 ON u1.id = g.player1_id
     LEFT JOIN users u2 ON u2.id = g.player2_id
-    WHERE g.status != 'finished'
+    WHERE g.status IN ('waiting', 'active')
       AND (g.player1_id = ${userId} OR g.player2_id = ${userId})
     ORDER BY g.created_at DESC
     LIMIT 10
@@ -261,7 +261,31 @@ export async function updateGameState(id: string, match: Match): Promise<void> {
     SET
       match_state = ${db.json(match as never)},
       status      = ${finished ? "finished" : "active"},
-      finished_at = ${finished ? db`now()` : db`NULL`}
+      finished_at = ${finished ? db`now()` : db`NULL`},
+      updated_at  = now()
     WHERE id = ${id}
   `;
+}
+
+export async function pruneStaleGames(): Promise<{
+  deletedWaiting: number;
+  abandonedActive: number;
+}> {
+  const db = requireSql();
+  return await db.begin(async (tx) => {
+    const deleted = await tx`
+      DELETE FROM games
+      WHERE status = 'waiting'
+        AND created_at < now() - interval '24 hours'
+      RETURNING id
+    `;
+    const abandoned = await tx`
+      UPDATE games
+      SET status = 'abandoned'
+      WHERE status = 'active'
+        AND updated_at < now() - interval '7 days'
+      RETURNING id
+    `;
+    return { deletedWaiting: deleted.length, abandonedActive: abandoned.length };
+  });
 }

@@ -1,3 +1,12 @@
+# [1.13.0](https://github.com/BMeyn/oche/compare/v1.12.0...v1.13.0) (2026-05-10)
+
+
+### Features
+
+* Add per-player indexes to the games table ([#24](https://github.com/BMeyn/oche/issues/24)) ([2fe2a90](https://github.com/BMeyn/oche/commit/2fe2a90a77567f992fa04d4c05e48952c4b37dd8))
+* Add public global darts leaderboard ([#25](https://github.com/BMeyn/oche/issues/25)) ([4885577](https://github.com/BMeyn/oche/commit/48855775f0b7552ab2f84a085369abe6f82a74a1))
+* Add visibility-aware polling hook ([#23](https://github.com/BMeyn/oche/issues/23)) ([f58a3d0](https://github.com/BMeyn/oche/commit/f58a3d05c5198d0a1a135c9d12b816ae4353f33e))
+
 # [1.12.0](https://github.com/BMeyn/oche/compare/v1.11.0...v1.12.0) (2026-05-09)
 
 

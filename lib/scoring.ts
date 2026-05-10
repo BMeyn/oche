@@ -665,11 +665,14 @@ export function undoLastDart(match: Match): Match {
 export function computeStats(match: Match): [PlayerStats, PlayerStats] {
   const allLegs = [...match.legHistory, match.currentLeg];
 
+  const isX01 = match.config.mode === "x01";
+
   const compute = (p: 0 | 1): PlayerStats => {
     let totalScore = 0, totalDarts = 0;
     let doubles = 0, triples = 0, bulls25 = 0, bullseyes = 0, misses = 0;
     let tons = 0, tonForty = 0, tonEighty = 0;
     let bestFinish = 0, highestTurn = 0;
+    let checkoutAttempts = 0;
 
     for (const leg of allLegs) {
       for (const turn of leg.turns[p]) {
@@ -681,6 +684,9 @@ export function computeStats(match: Match): [PlayerStats, PlayerStats] {
           if (turn.total >= 180) tonEighty++;
           else if (turn.total >= 140) tonForty++;
           else if (turn.total >= 100) tons++;
+        }
+        if (isX01 && turn.remainingBefore > 1 && turn.remainingBefore <= 170) {
+          checkoutAttempts++;
         }
         for (const d of turn.darts) {
           if (d.score === 0) misses++;
@@ -700,6 +706,7 @@ export function computeStats(match: Match): [PlayerStats, PlayerStats] {
       tons, tonForty, tonEighty,
       bestFinish, highestTurn,
       legsWon: match.legsWon[p],
+      checkoutAttempts,
     };
   };
 

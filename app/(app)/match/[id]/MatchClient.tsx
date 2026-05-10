@@ -9,18 +9,12 @@ import { SummaryScreen } from "@/components/summary/SummaryScreen";
 import { BrandMark } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { displayName } from "@/lib/display";
+import { gameLabel } from "@/lib/format";
 
 interface Props {
   game: Game;
   currentUserId: number;
   tournamentId?: string;
-}
-
-function gameLabel(game: Game): string {
-  const { config } = game;
-  if (config.mode === "highlow") return "High-Low";
-  const out = config.outRule === "double" ? "Double out" : config.outRule === "master" ? "Master out" : "Straight out";
-  return `${config.startingScore} · ${out} · Best of ${config.legsToWin * 2 - 1}`;
 }
 
 export function MatchClient({ game: initialGame, currentUserId, tournamentId }: Props) {
@@ -143,7 +137,7 @@ export function MatchClient({ game: initialGame, currentUserId, tournamentId }: 
               YOU.
             </div>
             <p className="f-mono text-sm text-bone mb-10">
-              {gameLabel(initialGame)}
+              {gameLabel(initialGame.config)}
             </p>
             <button
               onClick={join}

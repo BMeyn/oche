@@ -107,10 +107,20 @@ export function HistoryPage({ games, tournaments, user }: Props) {
                 {trainingGames.map((g) => {
                   const ts = g.trainingSummary!;
                   const isBust = ts.resultLabel === "BUSTED";
+                  const navigate = () => router.push(`/history/${g.id}`);
                   return (
                     <div
                       key={g.id}
-                      className="border border-border-soft flex items-center justify-between px-4 py-3 gap-3"
+                      role="button"
+                      tabIndex={0}
+                      onClick={navigate}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          navigate();
+                        }
+                      }}
+                      className="border border-border-soft flex items-center justify-between px-4 py-3 gap-3 cursor-pointer hover:border-border transition-colors"
                       style={{ background: "#0d1210" }}
                     >
                       <div className="min-w-0 flex-1">

@@ -276,4 +276,6 @@ export interface PlayerStats {
   bestFinish: number;
   highestTurn: number;
   legsWon: number;
+  /** X01 only: turns where the player was on a finish (remainingBefore in (1, 170]). */
+  checkoutAttempts: number;
 }

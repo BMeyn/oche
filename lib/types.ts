@@ -75,6 +75,8 @@ export interface Turn {
   dartsCount: number;
   /** Darts that count toward 3-dart average (excludes pre-double-in darts) */
   countedDartsCount: number;
+  /** ATC: progress value at the start of this turn (for undo) */
+  atcProgressBefore?: number;
 }
 
 export interface Leg {
@@ -87,6 +89,8 @@ export interface Leg {
   currentTurnDarts: Dart[];
   /** High-Low: best 3-dart total each player has put up this leg */
   highlowBest: [number | null, number | null];
+  /** Around the Clock: next target each player must hit (1..20, 21 = outer "25", 22 = BULL, 23 = finished) */
+  atcProgress: [number, number];
 }
 
 export interface CompletedLeg {
@@ -96,7 +100,7 @@ export interface CompletedLeg {
   startingPlayer: 0 | 1;
 }
 
-export type GameMode = "x01" | "highlow" | "training";
+export type GameMode = "x01" | "highlow" | "atc" | "training";
 export type InRule = "straight" | "double";
 export type OutRule = "straight" | "double" | "master";
 

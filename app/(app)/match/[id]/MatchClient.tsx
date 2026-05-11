@@ -20,6 +20,7 @@ interface Props {
 function gameLabel(game: Game): string {
   const { config } = game;
   if (config.mode === "highlow") return "High-Low";
+  if (config.mode === "atc") return "Around the Clock";
   const out = config.outRule === "double" ? "Double out" : config.outRule === "master" ? "Master out" : "Straight out";
   return `${config.startingScore} · ${out} · Best of ${config.legsToWin * 2 - 1}`;
 }

@@ -251,6 +251,8 @@ docker compose exec app node scripts/migrate.mjs
 
 The script is idempotent. Re-running is safe — already-applied migrations show `✓ already applied`.
 
+**Cron expectation:** `POST /api/cron/prune` with `Authorization: Bearer $CRON_SECRET` once per hour from the host crontab. It hard-deletes `waiting` games older than 24 hours and marks `active` games idle >7 days as `'abandoned'` (hidden from lists but preserved in DB). No external scheduler — a single line in the host crontab is enough.
+
 ## Naming conventions
 
 - **Component files:** `PascalCase.tsx`, one component per file

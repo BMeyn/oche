@@ -64,6 +64,7 @@ export function GameDetailPage({ game, currentUserId }: Props) {
               {durationMin > 0 && ` · ${durationMin}m`}
               {isX01 && ` · ${match.config.startingScore} ${ruleLabel(match.config)}`}
               {isHighLow && " · HIGH-LOW"}
+              {match.config.mode === "atc" && " · AROUND THE CLOCK"}
             </span>
           </div>
 

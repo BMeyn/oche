@@ -104,7 +104,11 @@ export function GameRow({ game: g, href }: Props) {
       </div>
       <div className="shrink-0 text-right flex items-center gap-2">
         <div className="f-mono text-[10px] text-muted" style={{ letterSpacing: "0.1em" }}>
-          {g.config.mode === "highlow" ? "HIGH-LOW" : `${g.config.startingScore}`}
+          {g.config.mode === "highlow"
+            ? "HIGH-LOW"
+            : g.config.mode === "atc"
+            ? "ATC"
+            : `${g.config.startingScore}`}
         </div>
         {interactive && <ChevronRight className="w-3.5 h-3.5 text-muted" />}
       </div>

@@ -73,7 +73,7 @@ export function CreateGameForm({ onClose }: Props) {
         <div className="px-6 py-6 space-y-6">
           <div>
             <Label>Game mode</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <ModeCard
                 active={mode === "x01"}
                 onClick={() => setMode("x01")}
@@ -87,6 +87,13 @@ export function CreateGameForm({ onClose }: Props) {
                 title="High-Low"
                 subtitle="Highest 3-dart turn"
                 description="Each leg, both throw 3 darts. Higher total wins."
+              />
+              <ModeCard
+                active={mode === "atc"}
+                onClick={() => setMode("atc")}
+                title="Around the Clock"
+                subtitle="1 → 20 → BULL"
+                description="Hit each number in order. First to finish wins."
               />
             </div>
           </div>

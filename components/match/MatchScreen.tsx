@@ -6,6 +6,7 @@ import type { Match, Multiplier } from "@/lib/types";
 import {
   applyDart, displayRemaining, makeDart, undoLastDart, computeStats, sumDarts,
   isDouble, DART_MISS, trainingCurrentTarget, trainingTotalRounds,
+  atcTargetLabel,
 } from "@/lib/scoring";
 import { checkoutHint } from "@/lib/checkouts";
 import { ruleLabel, drillLabel, targetLabel } from "@/lib/format";
@@ -35,6 +36,7 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
   const [legOverlay, setLegOverlay] = useState<LegOverlay | null>(null);
 
   const isX01 = match.config.mode === "x01";
+  const isATC = match.config.mode === "atc";
   const isTraining = match.config.mode === "training";
   const p = match.currentLeg.currentPlayer;
   const liveRemaining = displayRemaining(match, p);
@@ -139,7 +141,7 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
                 ? drillLabel(match.training!.drill).toUpperCase()
                 : match.config.mode === "x01"
                 ? `${match.config.startingScore} · ${ruleLabel(match.config)}`
-                : "HIGH-LOW"}
+                : ruleLabel(match.config)}
             </Tag>
           </div>
           {isTraining ? (
@@ -208,6 +210,7 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
             name={match.config.players[0]}
             live={isX01 ? displayRemaining(match, 0) : (match.currentLeg.highlowBest[0] ?? 0)}
             showRemaining={isX01}
+            bigText={isATC ? atcTargetLabel(match.currentLeg.atcProgress[0]) : null}
             active={p === 0}
             legsWon={match.legsWon[0]}
             turnDarts={dartsForP0}
@@ -224,6 +227,7 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
             name={match.config.players[1]}
             live={isX01 ? displayRemaining(match, 1) : (match.currentLeg.highlowBest[1] ?? 0)}
             showRemaining={isX01}
+            bigText={isATC ? atcTargetLabel(match.currentLeg.atcProgress[1]) : null}
             active={p === 1}
             legsWon={match.legsWon[1]}
             turnDarts={dartsForP1}
@@ -260,6 +264,13 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
           ) : isX01 ? (
             <span className="f-mono text-xs text-muted">
               {liveRemaining <= 0 ? "—" : `${liveRemaining} remaining`}
+            </span>
+          ) : isATC ? (
+            <span className="f-mono text-xs text-bone">
+              Target{" "}
+              <span className="f-display font-black text-electric">
+                {atcTargetLabel(match.currentLeg.atcProgress[p])}
+              </span>
             </span>
           ) : (
             <span className="f-mono text-xs text-bone">

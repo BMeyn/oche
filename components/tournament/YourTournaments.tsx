@@ -20,7 +20,11 @@ function timeAgo(date: Date | string): string {
 
 function formatLabel(t: Tournament): string {
   const fmt = t.format === "single_elim" ? "Single elim" : "Round robin";
-  const mode = t.gameConfig.mode === "highlow" ? "High-Low" : `${t.gameConfig.startingScore}`;
+  const mode = t.gameConfig.mode === "highlow"
+    ? "High-Low"
+    : t.gameConfig.mode === "atc"
+    ? "Around the Clock"
+    : `${t.gameConfig.startingScore}`;
   return `${fmt} · ${mode} · ${t.players.length} players`;
 }
 

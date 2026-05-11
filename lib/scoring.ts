@@ -1,4 +1,4 @@
-// lib/scoring.ts — pure scoring engine for X01, High-Low, and Training drills
+// lib/scoring.ts — pure scoring engine for X01, High-Low, Around the Clock, and Training drills
 import type {
   Dart, Multiplier, Turn, Leg, Match, MatchConfig,
   ApplyOutcome, PlayerStats,
@@ -73,13 +73,31 @@ function makeFreshLeg(number: number, startingPlayer: 0 | 1, startingScore: numb
     startingPlayer,
     currentTurnDarts: [],
     highlowBest: [null, null],
+    atcProgress: [1, 1],
   };
+}
+
+// ─── Around the Clock helpers ──────────────────────────────────────
+
+function atcAdvances(target: number, dart: Dart): boolean {
+  if (target >= 1 && target <= 20) return dart.number === target;
+  if (target === 21) return dart.number === 25 && dart.multiplier === 1;
+  if (target === 22) return dart.number === 25 && dart.multiplier === 2;
+  return false;
+}
+
+export function atcTargetLabel(progress: number): string {
+  if (progress >= 1 && progress <= 20) return String(progress);
+  if (progress === 21) return "25";
+  if (progress === 22) return "BULL";
+  return "DONE";
 }
 
 // ─── Live (in-progress) remaining for the active player ────────────
 
 export function displayRemaining(match: Match, p: 0 | 1): number {
   const leg = match.currentLeg;
+  if (match.config.mode === "atc") return leg.atcProgress[p];
   if (match.config.mode !== "x01") return 0;
   if (p !== leg.currentPlayer) return leg.remaining[p];
 
@@ -101,6 +119,7 @@ export function applyDart(match: Match, dart: Dart): { match: Match; outcome: Ap
   if (match.winner !== null) return { match, outcome: "match-over" };
   if (match.config.mode === "training") return applyDartTraining(match, dart);
   if (match.config.mode === "highlow") return applyDartHighLow(match, dart);
+  if (match.config.mode === "atc") return applyDartATC(match, dart);
   return applyDartX01(match, dart);
 }
 
@@ -343,6 +362,86 @@ function applyDartHighLow(match: Match, dart: Dart): { match: Match; outcome: Ap
         currentPlayer: (1 - p) as 0 | 1,
         currentTurnDarts: [],
         highlowBest: newBest,
+      },
+    },
+    outcome: "turn-end",
+  };
+}
+
+function applyDartATC(match: Match, dart: Dart): { match: Match; outcome: ApplyOutcome } {
+  const p = match.currentLeg.currentPlayer;
+  const leg = match.currentLeg;
+  const newTurnDarts = [...leg.currentTurnDarts, dart];
+
+  const progressBefore = leg.atcProgress[p];
+  let progress = progressBefore;
+  for (const d of newTurnDarts) {
+    if (atcAdvances(progress, d)) progress++;
+  }
+  const reachedEnd = progress >= 23;
+  const turnFull = newTurnDarts.length >= 3;
+  const finalize = reachedEnd || turnFull;
+
+  if (!finalize) {
+    return {
+      match: { ...match, currentLeg: { ...leg, currentTurnDarts: newTurnDarts } },
+      outcome: "dart",
+    };
+  }
+
+  const completedTurn: Turn = {
+    darts: newTurnDarts,
+    total: 0,
+    rawTotal: sumDarts(newTurnDarts),
+    kind: reachedEnd ? "win" : "ok",
+    remainingBefore: 0,
+    remainingAfter: 0,
+    dartsCount: newTurnDarts.length,
+    countedDartsCount: newTurnDarts.length,
+    atcProgressBefore: progressBefore,
+  };
+  const turns = leg.turns.map((arr, i) =>
+    i === p ? [...arr, completedTurn] : arr,
+  ) as [Turn[], Turn[]];
+  const newProgress = [...leg.atcProgress] as [number, number];
+  newProgress[p] = progress;
+
+  if (reachedEnd) {
+    const legsWon = [...match.legsWon] as [number, number];
+    legsWon[p] += 1;
+    const completedLeg = { number: leg.number, winner: p, turns, startingPlayer: leg.startingPlayer };
+    const matchWon = legsWon[p] >= match.config.legsToWin;
+    if (matchWon) {
+      return {
+        match: {
+          ...match,
+          currentLeg: { ...leg, turns, currentTurnDarts: [], atcProgress: newProgress },
+          legsWon, legHistory: [...match.legHistory, completedLeg],
+          winner: p, endedAt: Date.now(),
+        },
+        outcome: "match-won",
+      };
+    }
+    const nextStarter = (1 - leg.startingPlayer) as 0 | 1;
+    return {
+      match: {
+        ...match,
+        legsWon,
+        legHistory: [...match.legHistory, completedLeg],
+        currentLeg: makeFreshLeg(leg.number + 1, nextStarter, 0),
+      },
+      outcome: "leg-won",
+    };
+  }
+
+  return {
+    match: {
+      ...match,
+      currentLeg: {
+        ...leg, turns,
+        currentPlayer: (1 - p) as 0 | 1,
+        currentTurnDarts: [],
+        atcProgress: newProgress,
       },
     },
     outcome: "turn-end",
@@ -654,6 +753,11 @@ export function undoLastDart(match: Match): Match {
       remaining: leg.remaining.map((r, i) =>
         i === lastPlayer ? popped.remainingBefore : r,
       ) as [number, number],
+      atcProgress: match.config.mode === "atc"
+        ? leg.atcProgress.map((v, i) =>
+            i === lastPlayer ? (popped.atcProgressBefore ?? 1) : v,
+          ) as [number, number]
+        : leg.atcProgress,
       currentPlayer: lastPlayer,
       currentTurnDarts: popped.darts.slice(0, -1),
     },

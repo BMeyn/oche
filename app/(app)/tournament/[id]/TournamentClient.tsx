@@ -21,6 +21,7 @@ interface Props {
 function gameLabel(t: Tournament): string {
   const { gameConfig: c } = t;
   if (c.mode === "highlow") return "High-Low";
+  if (c.mode === "atc") return "Around the Clock";
   const out = c.outRule === "double" ? "Double out" : c.outRule === "master" ? "Master out" : "Straight out";
   return `${c.startingScore} · ${out} · Best of ${c.legsToWin * 2 - 1}`;
 }

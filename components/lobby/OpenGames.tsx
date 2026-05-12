@@ -2,17 +2,9 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import type { Game, GameConfig } from "@/lib/types";
-import { drillLabel } from "@/lib/format";
+import type { Game } from "@/lib/types";
+import { gameLabel } from "@/lib/format";
 import { usePolling } from "@/lib/usePolling";
-
-function gameLabel(config: GameConfig): string {
-  if (config.mode === "training") return drillLabel(config.drill ?? "doubles");
-  if (config.mode === "highlow") return "High-Low";
-  if (config.mode === "atc") return "Around the Clock";
-  const out = config.outRule === "double" ? "Double out" : config.outRule === "master" ? "Master out" : "Straight out";
-  return `${config.startingScore} · ${out} · Best of ${config.legsToWin * 2 - 1}`;
-}
 
 function timeAgo(date: Date | string): string {
   const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000);

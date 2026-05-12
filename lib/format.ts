@@ -1,5 +1,15 @@
 // lib/format.ts
-import type { MatchConfig, TrainingDrill, TrainingTarget } from "./types";
+import type { GameConfig, MatchConfig, TrainingDrill, TrainingTarget } from "./types";
+
+export function gameLabel(config: GameConfig): string {
+  if (config.mode === "training") return drillLabel(config.drill ?? "doubles");
+  if (config.mode === "highlow") return "High-Low";
+  if (config.mode === "atc") return "Around the Clock";
+  const out =
+    config.outRule === "double" ? "Double out" :
+    config.outRule === "master" ? "Master out" : "Straight out";
+  return `${config.startingScore} · ${out} · Best of ${config.legsToWin * 2 - 1}`;
+}
 
 export function ruleLabel(cfg: MatchConfig): string {
   if (cfg.mode === "training") return drillLabel(cfg.drill ?? "doubles").toUpperCase();

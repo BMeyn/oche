@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/BMeyn/oche/compare/v1.14.0...v1.15.0) (2026-05-11)
+
+
+### Features
+
+* Add Around-the-Clock game mode ([#27](https://github.com/BMeyn/oche/issues/27)) ([26d960b](https://github.com/BMeyn/oche/commit/26d960b63d7374ab7887d97d70a120d6be5ac0b3))
+
 # [1.14.0](https://github.com/BMeyn/oche/compare/v1.13.0...v1.14.0) (2026-05-10)
 
 

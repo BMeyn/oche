@@ -1,3 +1,33 @@
+# [1.15.0](https://github.com/BMeyn/oche/compare/v1.14.0...v1.15.0) (2026-05-11)
+
+
+### Features
+
+* Add Around-the-Clock game mode ([#27](https://github.com/BMeyn/oche/issues/27)) ([26d960b](https://github.com/BMeyn/oche/commit/26d960b63d7374ab7887d97d70a120d6be5ac0b3))
+
+# [1.14.0](https://github.com/BMeyn/oche/compare/v1.13.0...v1.14.0) (2026-05-10)
+
+
+### Features
+
+* Auto-expire stale waiting games and abandoned in-progress games ([#26](https://github.com/BMeyn/oche/issues/26)) ([2a05dfb](https://github.com/BMeyn/oche/commit/2a05dfb60449af8bf0a413fea8d0ceae28f51534))
+
+# [1.13.0](https://github.com/BMeyn/oche/compare/v1.12.0...v1.13.0) (2026-05-10)
+
+
+### Features
+
+* Add per-player indexes to the games table ([#24](https://github.com/BMeyn/oche/issues/24)) ([2fe2a90](https://github.com/BMeyn/oche/commit/2fe2a90a77567f992fa04d4c05e48952c4b37dd8))
+* Add public global darts leaderboard ([#25](https://github.com/BMeyn/oche/issues/25)) ([4885577](https://github.com/BMeyn/oche/commit/48855775f0b7552ab2f84a085369abe6f82a74a1))
+* Add visibility-aware polling hook ([#23](https://github.com/BMeyn/oche/issues/23)) ([f58a3d0](https://github.com/BMeyn/oche/commit/f58a3d05c5198d0a1a135c9d12b816ae4353f33e))
+
+# [1.12.0](https://github.com/BMeyn/oche/compare/v1.11.0...v1.12.0) (2026-05-09)
+
+
+### Features
+
+* Improve metric link invite email deliverability ([#22](https://github.com/BMeyn/oche/issues/22)) ([0f36d45](https://github.com/BMeyn/oche/commit/0f36d457960a2d34a060b2bc46db93b15171285f))
+
 # [1.11.0](https://github.com/BMeyn/oche/compare/v1.10.0...v1.11.0) (2026-05-09)
 
 

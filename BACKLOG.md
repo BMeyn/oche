@@ -27,12 +27,12 @@ Ideas and planned features for OCHE, roughly grouped by area. Not prioritised to
 - [x] **Friend leaderboard** — in `/settings`, table of friends + current user ranked by win rate.
 - [x] **Friend quick-invite in match** — when waiting for opponent, creator sees friends list with per-friend "Copy link" button.
 - [ ] **Player profile page** — `/player/[id]` showing match history, stats, recent form.
-- [ ] **Global leaderboard** — rank all players by avg, win rate, 180s, highest checkout.
+- [x] **Global leaderboard** — rank all players by avg, win rate, 180s, highest checkout. (`/leaderboard`)
 
 ## Additional game modes
 
 - [ ] **Cricket** — needs per-number-hit counters; different scoreboard layout.
-- [ ] **Around the Clock** — sequential targets 1 → 20.
+- [x] **Around the Clock** — sequential targets 1 → 20 → 25 → BULL. Strict: only S25 advances 25; only D25 advances BULL.
 - [ ] **Shanghai** — hit S+D+T of one number per turn.
 - [ ] **Killer** — usually 3+ players; needs multi-player support first.
 

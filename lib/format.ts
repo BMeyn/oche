@@ -4,6 +4,7 @@ import type { GameConfig, MatchConfig, TrainingDrill, TrainingTarget } from "./t
 export function gameLabel(config: GameConfig): string {
   if (config.mode === "training") return drillLabel(config.drill ?? "doubles");
   if (config.mode === "highlow") return "High-Low";
+  if (config.mode === "atc") return "Around the Clock";
   const out =
     config.outRule === "double" ? "Double out" :
     config.outRule === "master" ? "Master out" : "Straight out";
@@ -12,6 +13,7 @@ export function gameLabel(config: GameConfig): string {
 
 export function ruleLabel(cfg: MatchConfig): string {
   if (cfg.mode === "training") return drillLabel(cfg.drill ?? "doubles").toUpperCase();
+  if (cfg.mode === "atc") return "AROUND THE CLOCK";
   if (cfg.mode !== "x01") return "HIGH-LOW";
   const i = cfg.inRule === "double" ? "DI" : "SI";
   const o = cfg.outRule === "double" ? "DO" : cfg.outRule === "master" ? "MO" : "SO";

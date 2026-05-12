@@ -53,6 +53,14 @@ export function LobbyPage({ user, pendingFriendRequests }: Props) {
             <span className="f-mono text-xs text-bone hidden sm:block">{name}</span>
           </button>
           <button
+            onClick={() => router.push("/leaderboard")}
+            className="flex items-center gap-1.5 f-mono text-xs uppercase text-muted hover:text-cream"
+            style={{ letterSpacing: "0.18em" }}
+            title="Leaderboard"
+          >
+            <Trophy className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Leaderboard</span>
+          </button>
+          <button
             onClick={logout}
             className="flex items-center gap-1.5 f-mono text-xs uppercase text-muted hover:text-cream"
             style={{ letterSpacing: "0.18em" }}

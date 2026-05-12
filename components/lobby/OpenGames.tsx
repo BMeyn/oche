@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Game } from "@/lib/types";
 import { gameLabel } from "@/lib/format";
+import { usePolling } from "@/lib/usePolling";
 
 function timeAgo(date: Date | string): string {
   const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -38,9 +39,8 @@ export function OpenGames({ currentUserId }: { currentUserId: number }) {
 
   useEffect(() => {
     fetchGames();
-    const interval = setInterval(fetchGames, 5000);
-    return () => clearInterval(interval);
   }, [fetchGames]);
+  usePolling(fetchGames, 5000);
 
   const leave = async (gameId: string) => {
     setLeaving(gameId);

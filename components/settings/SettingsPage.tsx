@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, UserPlus, Check, X, Trash2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { BrandMark } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import type { User, FriendEntry } from "@/lib/types";
 import { displayName as dn } from "@/lib/display";
+import { usePolling } from "@/lib/usePolling";
 
 const PALETTE = [
   { hex: "#d4ff3a", label: "Electric" },
@@ -53,10 +54,7 @@ export function SettingsPage({ user, friends: initialFriends, requests: initialR
     }
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(refreshFriends, 10000);
-    return () => clearInterval(interval);
-  }, [refreshFriends]);
+  usePolling(refreshFriends, 10000);
 
   async function saveProfile() {
     setSaving(true);

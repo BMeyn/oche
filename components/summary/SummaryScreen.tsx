@@ -48,6 +48,7 @@ export function SummaryScreen({ match, onRestart, onNewMatch, onBackToTournament
             {match.config.mode === "x01" &&
               ` · ${match.config.startingScore} ${ruleLabel(match.config)}`}
             {match.config.mode === "highlow" && " · HIGH-LOW"}
+            {match.config.mode === "atc" && " · AROUND THE CLOCK"}
           </span>
         </div>
         <div className="bang mb-10">

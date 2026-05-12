@@ -6,6 +6,7 @@ import { Trophy } from "lucide-react";
 import type { Tournament } from "@/lib/types";
 import { computeStandings } from "@/lib/tournament";
 import { displayName as dn } from "@/lib/display";
+import { usePolling } from "@/lib/usePolling";
 
 function timeAgo(date: Date | string): string {
   const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -19,7 +20,11 @@ function timeAgo(date: Date | string): string {
 
 function formatLabel(t: Tournament): string {
   const fmt = t.format === "single_elim" ? "Single elim" : "Round robin";
-  const mode = t.gameConfig.mode === "highlow" ? "High-Low" : `${t.gameConfig.startingScore}`;
+  const mode = t.gameConfig.mode === "highlow"
+    ? "High-Low"
+    : t.gameConfig.mode === "atc"
+    ? "Around the Clock"
+    : `${t.gameConfig.startingScore}`;
   return `${fmt} · ${mode} · ${t.players.length} players`;
 }
 
@@ -48,9 +53,8 @@ export function YourTournaments({ currentUserId }: { currentUserId: number }) {
 
   useEffect(() => {
     fetchTournaments();
-    const interval = setInterval(fetchTournaments, 5000);
-    return () => clearInterval(interval);
   }, [fetchTournaments]);
+  usePolling(fetchTournaments, 5000);
 
   if (tournaments.length === 0) return null;
 

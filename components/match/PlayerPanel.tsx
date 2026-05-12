@@ -17,10 +17,12 @@ interface Props {
   dartsThrown: number;
   notStartedYet: boolean;
   checkoutHint: string[] | null;
+  /** When set, overrides the big numeric live display (used by ATC for "BULL" / "25") */
+  bigText?: string | null;
 }
 
 export function PlayerPanel({
-  name, live, showRemaining, active, legsWon, turnDarts, side, accent, avg, dartsThrown, notStartedYet, checkoutHint,
+  name, live, showRemaining, active, legsWon, turnDarts, side, accent, avg, dartsThrown, notStartedYet, checkoutHint, bigText,
 }: Props) {
   return (
     <div
@@ -80,7 +82,7 @@ export function PlayerPanel({
             opacity: notStartedYet ? 0.7 : 1,
           }}
         >
-          {showRemaining ? String(live).padStart(3, "0") : (live === 0 ? "—" : String(live))}
+          {bigText ?? (showRemaining ? String(live).padStart(3, "0") : (live === 0 ? "—" : String(live)))}
         </div>
         <div className="text-right pb-1 shrink-0">
           <div

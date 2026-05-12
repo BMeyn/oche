@@ -10,6 +10,7 @@ import { BrandMark } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { displayName } from "@/lib/display";
 import { gameLabel } from "@/lib/format";
+import { usePolling } from "@/lib/usePolling";
 
 interface Props {
   game: Game;
@@ -26,7 +27,6 @@ export function MatchClient({ game: initialGame, currentUserId, tournamentId }: 
   const [copiedFor, setCopiedFor] = useState<number | null>(null);
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [rematchPending, setRematchPending] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const etagRef = useRef<string | null>(null);
 
   const gameId = initialGame.id;
@@ -44,16 +44,7 @@ export function MatchClient({ game: initialGame, currentUserId, tournamentId }: 
     if (g.matchState) setMatch(g.matchState);
   }, [gameId]);
 
-  useEffect(() => {
-    if (status === "finished") {
-      if (pollRef.current) clearInterval(pollRef.current);
-      return;
-    }
-    pollRef.current = setInterval(poll, 1500);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [status, poll]);
+  usePolling(poll, 1500, status !== "finished");
 
   const proxySetMatch = useCallback((newMatch: Match) => {
     setMatch(newMatch);

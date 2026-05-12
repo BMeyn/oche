@@ -14,6 +14,21 @@ function hashToken(raw: string) {
 const TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+// Counts magic tokens issued for this user within the last `windowMinutes` minutes.
+// magic_tokens has no created_at column, but expires_at = creation + 15min, so
+// "issued in the last N minutes" ⇔ expires_at > now() + (15 - N) minutes.
+export async function countRecentMagicTokens(userId: number, windowMinutes: number): Promise<number> {
+  const db = requireSql();
+  const tokenLifetimeMinutes = TOKEN_TTL_MS / 60_000;
+  const cutoffMinutes = tokenLifetimeMinutes - windowMinutes;
+  const [row] = await db`
+    SELECT count(*)::int AS n FROM magic_tokens
+    WHERE user_id = ${userId}
+      AND expires_at > now() + (${cutoffMinutes} || ' minutes')::interval
+  `;
+  return Number(row?.n ?? 0);
+}
+
 // Returns the raw (unhashed) token to embed in the email link.
 export async function createMagicToken(userId: number): Promise<string> {
   const db = requireSql();

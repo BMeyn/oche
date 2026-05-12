@@ -4,6 +4,7 @@ import {
   applyDart, createMatch, displayRemaining, makeDart,
   undoLastDart, computeStats, sumDarts,
   computeTrainingStats, generateCheckoutScenarios,
+  atcTargetLabel,
 } from "../lib/scoring";
 import type { Match, MatchConfig } from "../lib/types";
 
@@ -247,6 +248,128 @@ describe("High-Low", () => {
     m = throwMany(m, [S(1), S(1), S(1)]);    // P1 = 3
     expect(m.winner).toBe(0);
     expect(m.legsWon[0]).toBe(1);
+  });
+});
+
+describe("Around the Clock", () => {
+  const atcConfig: MatchConfig = {
+    players: ["Alice", "Bob"],
+    legsToWin: 1,
+    mode: "atc",
+    startingScore: 0,
+  };
+
+  it("starts at target 1 for both players", () => {
+    const m = createMatch(atcConfig);
+    expect(m.currentLeg.atcProgress).toEqual([1, 1]);
+    expect(displayRemaining(m, 0)).toBe(1);
+    expect(displayRemaining(m, 1)).toBe(1);
+  });
+
+  it("any segment of the current number advances by one step", () => {
+    let m = createMatch(atcConfig);
+    // P0: S1 advances 1→2, then on target 2 the next two darts miss the new target.
+    m = throwMany(m, [S(1), S(1), D(1)]); // only the first S(1) advances; on target 2 darts at "1" no longer match
+    expect(m.currentLeg.atcProgress[0]).toBe(2);
+    // P1: T(1) also counts as hitting "1" — any segment.
+    m = throwMany(m, [T(1), MISS, MISS]);
+    expect(m.currentLeg.atcProgress[1]).toBe(2);
+  });
+
+  it("only the matching number advances; misses stay on target", () => {
+    let m = createMatch(atcConfig);
+    // P0 on target 1: throw at other numbers — no advance.
+    m = throwMany(m, [S(4), D(6), T(5)]);
+    expect(m.currentLeg.atcProgress[0]).toBe(1);
+    expect(m.currentLeg.currentPlayer).toBe(1);
+  });
+
+  it("target 25 strict: bullseye does NOT advance 25; single 25 does", () => {
+    let m = createMatch(atcConfig);
+    // Manually seat P0 on target 21 (outer "25").
+    m = {
+      ...m,
+      currentLeg: { ...m.currentLeg, atcProgress: [21, 1] },
+    };
+    m = throwMany(m, [BULL, MISS, MISS]); // bullseye must NOT advance target 25
+    expect(m.currentLeg.atcProgress[0]).toBe(21);
+    // P1 turn passes
+    m = throwMany(m, [MISS, MISS, MISS]);
+    // Back to P0, hit outer 25 → advance to 22 (BULL).
+    m = throwMany(m, [OUTER, MISS, MISS]);
+    expect(m.currentLeg.atcProgress[0]).toBe(22);
+  });
+
+  it("hitting BULL on target 22 wins the leg mid-turn", () => {
+    let m = createMatch(atcConfig);
+    m = {
+      ...m,
+      currentLeg: { ...m.currentLeg, atcProgress: [22, 1] },
+    };
+    const { match: next, outcome } = applyDart(m, BULL);
+    expect(outcome).toBe("match-won");
+    expect(next.winner).toBe(0);
+    expect(next.legsWon[0]).toBe(1);
+    const lastTurn = next.currentLeg.turns[0].at(-1)!;
+    expect(lastTurn.darts).toHaveLength(1);
+    expect(lastTurn.kind).toBe("win");
+  });
+
+  it("3-dart turn caps at 3 even with all misses", () => {
+    let m = createMatch(atcConfig);
+    m = throwMany(m, [MISS, MISS, MISS]);
+    expect(m.currentLeg.atcProgress[0]).toBe(1);
+    expect(m.currentLeg.currentPlayer).toBe(1);
+    expect(m.currentLeg.turns[0]).toHaveLength(1);
+  });
+
+  it("undo restores ATC progress within and across turns", () => {
+    let m = createMatch(atcConfig);
+    m = throwMany(m, [S(1), MISS, MISS]); // P0 committed to target 2
+    expect(m.currentLeg.atcProgress[0]).toBe(2);
+    expect(m.currentLeg.currentPlayer).toBe(1);
+    // Undo: pops back into P0's turn with 2 darts, restoring progress to 1.
+    m = undoLastDart(m);
+    expect(m.currentLeg.currentPlayer).toBe(0);
+    expect(m.currentLeg.currentTurnDarts).toHaveLength(2);
+    expect(m.currentLeg.atcProgress[0]).toBe(1);
+    // Two more undos clear the turn entirely.
+    m = undoLastDart(m);
+    m = undoLastDart(m);
+    expect(m.currentLeg.currentTurnDarts).toHaveLength(0);
+    expect(m.currentLeg.atcProgress[0]).toBe(1);
+  });
+
+  it("best-of-3 match: first to 2 leg completions wins", () => {
+    let m = createMatch({ ...atcConfig, legsToWin: 2 });
+    // Force P0 close to finish, then finish twice.
+    m = {
+      ...m,
+      currentLeg: { ...m.currentLeg, atcProgress: [22, 1] },
+    };
+    ({ match: m } = applyDart(m, BULL));
+    expect(m.legsWon[0]).toBe(1);
+    expect(m.winner).toBe(null);
+    // New leg: starting player alternates to P1, but progress is reset.
+    expect(m.currentLeg.number).toBe(2);
+    expect(m.currentLeg.atcProgress).toEqual([1, 1]);
+    // Seat P0 on 22 again (current player in leg 2 is P1 — give them a passing turn, then P0).
+    expect(m.currentLeg.currentPlayer).toBe(1);
+    m = throwMany(m, [MISS, MISS, MISS]); // P1 passes
+    m = {
+      ...m,
+      currentLeg: { ...m.currentLeg, atcProgress: [22, m.currentLeg.atcProgress[1]] },
+    };
+    ({ match: m } = applyDart(m, BULL));
+    expect(m.winner).toBe(0);
+    expect(m.legsWon[0]).toBe(2);
+  });
+
+  it("atcTargetLabel maps progress to human labels", () => {
+    expect(atcTargetLabel(1)).toBe("1");
+    expect(atcTargetLabel(20)).toBe("20");
+    expect(atcTargetLabel(21)).toBe("25");
+    expect(atcTargetLabel(22)).toBe("BULL");
   });
 });
 

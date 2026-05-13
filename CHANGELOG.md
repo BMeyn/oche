@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/BMeyn/oche/compare/v1.15.0...v1.16.0) (2026-05-13)
+
+
+### Features
+
+* Add match summary detail page ([f84bb4f](https://github.com/BMeyn/oche/commit/f84bb4f3147cb528d3d2a0f5b843f9788dc54354))
+
 # [1.15.0](https://github.com/BMeyn/oche/compare/v1.14.0...v1.15.0) (2026-05-11)
 
 

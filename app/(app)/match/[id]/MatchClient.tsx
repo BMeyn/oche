@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { displayName } from "@/lib/display";
 import { gameLabel } from "@/lib/format";
 import { usePolling } from "@/lib/usePolling";
+import { useScreenWakeLock } from "@/lib/useScreenWakeLock";
 
 interface Props {
   game: Game;
@@ -45,6 +46,7 @@ export function MatchClient({ game: initialGame, currentUserId, tournamentId }: 
   }, [gameId]);
 
   usePolling(poll, 1500, status !== "finished");
+  useScreenWakeLock(status === "active");
 
   const proxySetMatch = useCallback((newMatch: Match) => {
     setMatch(newMatch);

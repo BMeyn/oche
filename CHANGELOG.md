@@ -1,3 +1,11 @@
+# [1.17.0](https://github.com/BMeyn/oche/compare/v1.16.0...v1.17.0) (2026-05-14)
+
+
+### Features
+
+* Add a /api/health endpoint with DB connectivity check for the VPS deploy ([#29](https://github.com/BMeyn/oche/issues/29)) ([a3f8c74](https://github.com/BMeyn/oche/commit/a3f8c741553fcfa1d109c22cbc76ee9fcaa757a0))
+* Prevent device sleep during active matches ([#28](https://github.com/BMeyn/oche/issues/28)) ([6fcf618](https://github.com/BMeyn/oche/commit/6fcf618085745775d6f29d5845508ba09f2f5943))
+
 # [1.16.0](https://github.com/BMeyn/oche/compare/v1.15.0...v1.16.0) (2026-05-13)
 
 

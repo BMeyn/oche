@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/BMeyn/oche/compare/v1.17.0...v1.18.0) (2026-05-14)
+
+
+### Features
+
+* Add PWA installability to OCHE ([#30](https://github.com/BMeyn/oche/issues/30)) ([b527716](https://github.com/BMeyn/oche/commit/b52771627139d6e83aa313b9eaa126d8ba3cc927))
+
 # [1.17.0](https://github.com/BMeyn/oche/compare/v1.16.0...v1.17.0) (2026-05-14)
 
 

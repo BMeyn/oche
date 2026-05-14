@@ -314,6 +314,15 @@ docker compose up -d --build app
 docker compose exec app node scripts/migrate.mjs
 ```
 
+After deploy — health smoke test:
+
+```bash
+curl -fsS http://localhost:3000/api/health   # local
+curl -fsS https://oche.cloud/api/health      # production
+# → 200 { "status": "ok", "version": "...", "db": "up", "uptime": ... }
+# → 503 { "status": "degraded", "db": "down", ... } if DB is unreachable
+```
+
 ## Working with the user
 
 - They appreciate clean, terse responses with reasoning shown briefly. Don't over-explain.

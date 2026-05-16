@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/BMeyn/oche/compare/v1.19.0...v1.20.0) (2026-05-16)
+
+
+### Features
+
+* Prevent accidental logout clicks on mobile ([#32](https://github.com/BMeyn/oche/issues/32)) ([7f03d11](https://github.com/BMeyn/oche/commit/7f03d1125a0574b24104923e7864a1b6ccbe849a))
+
 # [1.19.0](https://github.com/BMeyn/oche/compare/v1.18.0...v1.19.0) (2026-05-16)
 
 

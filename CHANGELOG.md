@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/BMeyn/oche/compare/v1.18.0...v1.19.0) (2026-05-16)
+
+
+### Features
+
+* Allow custom tournament player counts up to sixteen ([#31](https://github.com/BMeyn/oche/issues/31)) ([4c5c7e9](https://github.com/BMeyn/oche/commit/4c5c7e99343bbaed09cb18f9e22db411058b226a))
+
 # [1.18.0](https://github.com/BMeyn/oche/compare/v1.17.0...v1.18.0) (2026-05-14)
 
 

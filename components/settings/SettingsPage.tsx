@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, UserPlus, Check, X, Trash2 } from "lucide-react";
+import { ArrowLeft, UserPlus, Check, X, Trash2, LogOut } from "lucide-react";
 import { BrandMark } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import type { User, FriendEntry } from "@/lib/types";
@@ -111,6 +111,11 @@ export function SettingsPage({ user, friends: initialFriends, requests: initialR
   async function cancelRequest(requestId: number) {
     await fetch(`/api/friends/${requestId}`, { method: "DELETE" });
     await refreshFriends();
+  }
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
   }
 
   // Leaderboard: accepted friends + self
@@ -401,6 +406,17 @@ export function SettingsPage({ user, friends: initialFriends, requests: initialR
               </div>
             </Section>
           )}
+
+          {/* ── Account ── */}
+          <Section label="Account">
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 f-mono text-xs uppercase border border-border-soft text-muted hover:text-oche-red hover:border-oche-red px-5 py-3 transition-colors"
+              style={{ letterSpacing: "0.18em" }}
+            >
+              <LogOut className="w-4 h-4" /> Log out
+            </button>
+          </Section>
         </div>
       </div>
     </div>

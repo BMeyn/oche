@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, UserPlus, Check, X, Trash2 } from "lucide-react";
@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import type { User, FriendEntry } from "@/lib/types";
 import { displayName as dn } from "@/lib/display";
 import { usePolling } from "@/lib/usePolling";
+import { isSoundEnabled, setSoundEnabled } from "@/lib/sound";
 
 const PALETTE = [
   { hex: "#d4ff3a", label: "Electric" },
@@ -42,6 +43,17 @@ export function SettingsPage({ user, friends: initialFriends, requests: initialR
   const [addEmail, setAddEmail] = useState("");
   const [addError, setAddError] = useState("");
   const [addSending, setAddSending] = useState(false);
+
+  // Sound state (default OFF; reconciled from localStorage after mount to avoid hydration mismatch)
+  const [soundOn, setSoundOn] = useState(false);
+  useEffect(() => {
+    setSoundOn(isSoundEnabled());
+  }, []);
+  function toggleSound() {
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundEnabled(next);
+  }
 
   const previewName = nameInput.trim() || dn(user.email, null);
 
@@ -211,6 +223,37 @@ export function SettingsPage({ user, friends: initialFriends, requests: initialR
               {saveMsg && (
                 <span className="f-mono text-sm text-electric">{saveMsg}</span>
               )}
+            </div>
+          </Section>
+
+          {/* ── Sound ── */}
+          <Section label="Sound">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="f-display font-black text-cream text-lg uppercase">Match sounds</div>
+                <div className="f-mono text-xs text-muted mt-0.5">
+                  bust · game shot · match won · 180
+                </div>
+              </div>
+              <button
+                onClick={toggleSound}
+                role="switch"
+                aria-checked={soundOn}
+                aria-label="Toggle match sounds"
+                className="relative h-8 w-16 shrink-0 transition-colors"
+                style={{
+                  background: soundOn ? "#d4ff3a" : "#1a211d",
+                  border: "1px solid #2a332d",
+                }}
+              >
+                <span
+                  className="absolute top-0.5 h-6 w-6 transition-transform"
+                  style={{
+                    background: soundOn ? "#0a0e0c" : "#6d736f",
+                    transform: soundOn ? "translateX(34px)" : "translateX(4px)",
+                  }}
+                />
+              </button>
             </div>
           </Section>
 

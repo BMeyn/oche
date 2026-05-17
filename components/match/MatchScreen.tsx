@@ -14,6 +14,7 @@ import { Tag } from "@/components/ui/primitives";
 import { PlayerPanel } from "./PlayerPanel";
 import { Keypad } from "./Keypad";
 import { TrainingPanel } from "@/components/training/TrainingPanel";
+import { playSound } from "@/lib/sound";
 
 interface Props {
   match: Match;
@@ -80,7 +81,17 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
     const { match: next, outcome } = applyDart(match, dart);
     setMultiplier(1);
 
-    if (outcome === "bust") setToast({ msg: "BUST", kind: "bust" });
+    if (isX01) {
+      const justThrown = next.currentLeg.turns[p].at(-1);
+      if (justThrown && justThrown.total === 180 && justThrown.kind !== "bust") {
+        playSound("oneeighty");
+      }
+    }
+
+    if (outcome === "bust") {
+      setToast({ msg: "BUST", kind: "bust" });
+      playSound("bust");
+    }
     if (isTraining && outcome === "leg-won") {
       // Per-scenario success in Checkout drill
       setToast({ msg: "CHECKOUT", kind: "info" });
@@ -95,10 +106,14 @@ export function MatchScreen({ match, setMatch, onExit, onFinish }: Props) {
         highlowBest: match.currentLeg.highlowBest,
       });
       setTimeout(() => setLegOverlay(null), 2200);
+      playSound("leg-won");
     }
     if (outcome === "match-won") {
       setMatch(next);
-      setTimeout(() => onFinish(next), 1000);
+      setTimeout(() => {
+        playSound("match-won");
+        onFinish(next);
+      }, 1000);
       return;
     }
     setMatch(next);

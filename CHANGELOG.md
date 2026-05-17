@@ -1,3 +1,39 @@
+# [1.20.0](https://github.com/BMeyn/oche/compare/v1.19.0...v1.20.0) (2026-05-16)
+
+
+### Features
+
+* Prevent accidental logout clicks on mobile ([#32](https://github.com/BMeyn/oche/issues/32)) ([7f03d11](https://github.com/BMeyn/oche/commit/7f03d1125a0574b24104923e7864a1b6ccbe849a))
+
+# [1.19.0](https://github.com/BMeyn/oche/compare/v1.18.0...v1.19.0) (2026-05-16)
+
+
+### Features
+
+* Allow custom tournament player counts up to sixteen ([#31](https://github.com/BMeyn/oche/issues/31)) ([4c5c7e9](https://github.com/BMeyn/oche/commit/4c5c7e99343bbaed09cb18f9e22db411058b226a))
+
+# [1.18.0](https://github.com/BMeyn/oche/compare/v1.17.0...v1.18.0) (2026-05-14)
+
+
+### Features
+
+* Add PWA installability to OCHE ([#30](https://github.com/BMeyn/oche/issues/30)) ([b527716](https://github.com/BMeyn/oche/commit/b52771627139d6e83aa313b9eaa126d8ba3cc927))
+
+# [1.17.0](https://github.com/BMeyn/oche/compare/v1.16.0...v1.17.0) (2026-05-14)
+
+
+### Features
+
+* Add a /api/health endpoint with DB connectivity check for the VPS deploy ([#29](https://github.com/BMeyn/oche/issues/29)) ([a3f8c74](https://github.com/BMeyn/oche/commit/a3f8c741553fcfa1d109c22cbc76ee9fcaa757a0))
+* Prevent device sleep during active matches ([#28](https://github.com/BMeyn/oche/issues/28)) ([6fcf618](https://github.com/BMeyn/oche/commit/6fcf618085745775d6f29d5845508ba09f2f5943))
+
+# [1.16.0](https://github.com/BMeyn/oche/compare/v1.15.0...v1.16.0) (2026-05-13)
+
+
+### Features
+
+* Add match summary detail page ([f84bb4f](https://github.com/BMeyn/oche/commit/f84bb4f3147cb528d3d2a0f5b843f9788dc54354))
+
 # [1.15.0](https://github.com/BMeyn/oche/compare/v1.14.0...v1.15.0) (2026-05-11)
 
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, LogOut, Trophy, Clock, Target } from "lucide-react";
+import { Plus, Trophy, Clock, Target } from "lucide-react";
 import { BrandMark } from "@/components/ui/primitives";
 import { Avatar } from "@/components/ui/Avatar";
 import { CreateGameForm } from "./CreateGameForm";
@@ -23,11 +23,6 @@ export function LobbyPage({ user, pendingFriendRequests }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [showCreateTournament, setShowCreateTournament] = useState(false);
   const [showCreateTraining, setShowCreateTraining] = useState(false);
-
-  const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
-  };
 
   const name = dn(user.email, user.displayName);
 
@@ -59,13 +54,6 @@ export function LobbyPage({ user, pendingFriendRequests }: Props) {
             title="Leaderboard"
           >
             <Trophy className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Leaderboard</span>
-          </button>
-          <button
-            onClick={logout}
-            className="flex items-center gap-1.5 f-mono text-xs uppercase text-muted hover:text-cream"
-            style={{ letterSpacing: "0.18em" }}
-          >
-            <LogOut className="w-3.5 h-3.5" /> Logout
           </button>
         </div>
       </div>

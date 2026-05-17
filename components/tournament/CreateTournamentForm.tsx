@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, Minus, Plus, X } from "lucide-react";
 import type { GameConfig, GameMode, InRule, OutRule } from "@/lib/types";
 import { Label } from "@/components/ui/primitives";
+
+const MIN_PLAYERS = 2;
+const MAX_PLAYERS = 16;
 
 interface Props {
   onClose: () => void;
@@ -132,17 +135,7 @@ export function CreateTournamentForm({ onClose }: Props) {
           {/* Max players */}
           <div>
             <Label>Max players</Label>
-            <div className="grid grid-cols-5 gap-2">
-              {[4, 6, 8, 12, 16].map((n) => (
-                <OptionButton
-                  key={n}
-                  active={maxPlayers === n}
-                  onClick={() => setMaxPlayers(n)}
-                >
-                  <div className="f-display font-black text-2xl">{n}</div>
-                </OptionButton>
-              ))}
-            </div>
+            <PlayerStepper value={maxPlayers} onChange={setMaxPlayers} />
           </div>
 
           {/* Divider */}
@@ -236,6 +229,57 @@ export function CreateTournamentForm({ onClose }: Props) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PlayerStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const canDec = value > MIN_PLAYERS;
+  const canInc = value < MAX_PLAYERS;
+  return (
+    <div
+      className="grid grid-cols-[auto_1fr_auto] items-stretch border"
+      style={{ borderColor: "#2a332d", background: "#141a17" }}
+    >
+      <button
+        type="button"
+        aria-label="Decrease max players"
+        onClick={() => canDec && onChange(Math.max(MIN_PLAYERS, value - 1))}
+        disabled={!canDec}
+        className="px-5 flex items-center justify-center border-r"
+        style={{
+          borderColor: "#2a332d",
+          color: canDec ? "#f2e8d0" : "#454b47",
+          cursor: canDec ? "pointer" : "not-allowed",
+        }}
+      >
+        <Minus className="w-5 h-5" strokeWidth={3} />
+      </button>
+      <div className="flex flex-col items-center justify-center py-2">
+        <div className="f-display font-black text-3xl leading-none" style={{ color: "#d4ff3a" }}>
+          {value}
+        </div>
+        <div
+          className="f-mono text-[9px] uppercase text-muted mt-1"
+          style={{ letterSpacing: "0.2em" }}
+        >
+          {value === 1 ? "player" : "players"}
+        </div>
+      </div>
+      <button
+        type="button"
+        aria-label="Increase max players"
+        onClick={() => canInc && onChange(Math.min(MAX_PLAYERS, value + 1))}
+        disabled={!canInc}
+        className="px-5 flex items-center justify-center border-l"
+        style={{
+          borderColor: "#2a332d",
+          color: canInc ? "#f2e8d0" : "#454b47",
+          cursor: canInc ? "pointer" : "not-allowed",
+        }}
+      >
+        <Plus className="w-5 h-5" strokeWidth={3} />
+      </button>
     </div>
   );
 }

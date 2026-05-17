@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { displayName as dn } from "@/lib/display";
 import { computeRankings } from "@/lib/tournament";
 import { usePolling } from "@/lib/usePolling";
+import { useScreenWakeLock } from "@/lib/useScreenWakeLock";
 
 interface Props {
   tournament: Tournament;
@@ -48,6 +49,7 @@ export function TournamentClient({ tournament: initial, currentUserId, user }: P
   }, [t.id]);
 
   usePolling(poll, 5000, t.status !== "finished");
+  useScreenWakeLock(t.status === "active");
 
   useEffect(() => {
     if (!isCreator) return;
